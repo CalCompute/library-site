@@ -27,7 +27,7 @@ const countIn = (d) => [...files].filter((f) => f.startsWith(d + '/')).length;
         return p ? (
           <tr><td><a class="underline" href={p.route}>{p.title}</a></td><td>{p.data.origin ?? p.type}</td><td>{pageDate(p.data, f)}</td><td>{m.linksIn.get(f)?.length ?? 0}</td></tr>
         ) : (
-          <tr><td><a class="underline text-gray-600" href={routeOf(f)}>{f.split('/').pop()}</a></td><td>original</td><td></td><td></td></tr>
+          <tr><td>{routeOf(f) ? <a class="underline text-gray-600" href={routeOf(f)} target="_blank" rel="noopener">{f.split('/').pop()} ↗</a> : f.split('/').pop()}</td><td>original</td><td></td><td></td></tr>
         );
       })}
     </tbody>

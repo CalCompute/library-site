@@ -29,8 +29,8 @@ export const slugSeg = (s) =>
 export const idOf = (rel) => rel.split('/').slice(1).map((s) => slugSeg(s.replace(/\.md$/, ''))).join('/');
 
 // Route for a file or folder path relative to WIKI, or null when it is not in the mirror
-// (bin/, setup.sh ...). Binaries are served at their own path, copied by
-// scripts/copy-raw-originals.mjs.
+// (bin/, setup.sh ...). An original (PDF, saved web page) is not served here: its route is the
+// public Drive copy, else the publisher's page (outsideUrl).
 export function routeOf(rel) {
   if (META[rel]) return META[rel];
   // A raw/ folder guide is a note for the repository's keepers: shown in the GitHub view, never a page here.
@@ -43,13 +43,17 @@ export function routeOf(rel) {
   if (dirs.has(rel)) return rel === tree ? `/${tree}/` : `/${tree}/${idOf(rel)}/`;
   if (!files.has(rel)) return null;
   if (rel.endsWith('.md')) return `/${tree}/${idOf(rel)}/`;
-  return originalUrl(rel);
+  return outsideUrl(rel);
 }
 
-// Originals (PDF, DOCX, saved HTML) are copied to dist at these URLs. Saved HTML is third-party
-// code, so it gets its own prefix, which public/_headers serves sandboxed.
-export const originalUrl = (rel) =>
-  (/\.html?$/i.test(rel) ? '/saved-pages/' : '/files/') + rel.split('/').map(encodeURIComponent).join('/');
+// The public Google Drive hosts the originals, not this site (user, Nov. 2, 2026). An original opens its Drive copy,
+// else the address its Markdown copy was downloaded from; null when it has neither.
+export function outsideUrl(rel) {
+  const md = copyOf(rel);
+  if (!md) return null;
+  const fm = readWiki(md).split('\n---', 2)[0];
+  return driveHref(routeOf(md)) ?? fm.match(/^(?:url|sourceUrl):\s*"?([^"\n]+?)"?\s*$/m)?.[1] ?? null;
+}
 
 // Resolve a markdown href written in file `fromRel`. Returns {external} or {target, route}.
 export function resolveHref(fromRel, href) {
@@ -252,10 +256,15 @@ export const RAW_FOLDERS = {
 
 // A raw original the library may serve: its Markdown copy says rehost: yes (AGENTS.md, "Rehost only what may be
 // rehosted"), or it is in raw/legislative/, which holds only government text.
+// The Markdown copy of an original: same name, or the .md whose `original:` names it.
+export function copyOf(rel) {
+  const md = rel.replace(/\.[^./]+$/, '.md');
+  return files.has(md) ? md : [...files].find((f) => f.endsWith('.md') && f.startsWith(path.posix.dirname(rel) + '/') && /^---[\s\S]*?\noriginal: (.+)\n/m.exec(readWiki(f))?.[1]?.trim() === path.posix.basename(rel)) ?? null;
+}
+
 export function rehosted(rel) {
   if (rel.startsWith('raw/legislative/')) return true;
-  const md = rel.replace(/\.[^./]+$/, '.md');
-  const sibling = files.has(md) ? md : [...files].find((f) => f.endsWith('.md') && f.startsWith(path.posix.dirname(rel) + '/') && /^---[\s\S]*?\noriginal: (.+)\n/m.exec(readWiki(f))?.[1]?.trim() === path.posix.basename(rel));
+  const sibling = copyOf(rel);
   return Boolean(sibling && /^rehost: yes$/m.test(readWiki(sibling).split('\n---', 2)[0]));
 }
 

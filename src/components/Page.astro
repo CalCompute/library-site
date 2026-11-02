@@ -73,7 +73,7 @@ const meta = Object.entries({
       </div>
       {(originals.length > 0 || onlineUrl) && (
         <p class="text-sm mb-3 flex flex-wrap gap-x-4" data-pagefind-ignore>
-          {originals.map((o) => <a class="underline text-uc-blue-dark" href={routeOf(o)}>Original {o.split('.').pop().toUpperCase()}</a>)}
+          {originals.map((o) => routeOf(o) && <a class="underline text-uc-blue-dark" href={routeOf(o)} target="_blank" rel="noopener">{/drive\.google\.com/.test(routeOf(o)) ? 'Original in the Drive ↗' : 'Original ↗'}</a>)}
           {onlineUrl && <a class="underline text-uc-blue-dark" href={onlineUrl} target="_blank" rel="noopener">{/drive\.google|docs\.google/.test(onlineUrl) ? 'Open in the Drive ↗' : 'Online ↗'}</a>}
         </p>
       )}

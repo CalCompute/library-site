@@ -20,11 +20,12 @@ test('links resolve to site routes', () => {
   assert.ok(resolveHref(from, 'https://example.org').external);
 });
 
-test('originals get their own sandboxable prefix', () => {
-  const html = [...files].find((f) => f.endsWith('.html'));
-  const pdf = [...files].find((f) => f.endsWith('.pdf'));
-  if (html) assert.match(routeOf(html), /^\/saved-pages\/raw\//);
-  if (pdf) assert.match(routeOf(pdf), /^\/files\/raw\//);
+test('originals open outside this site: the public Drive or the publisher', () => {
+  const originals = [...files].filter((f) => f.startsWith('raw/') && !f.endsWith('.md'));
+  assert.ok(originals.length > 0);
+  for (const f of originals) { const r = routeOf(f); if (r) assert.match(r, /^https:\/\//, f); }
+  const inDrive = originals.filter((f) => /^https:\/\/drive\.google\.com\//.test(routeOf(f) ?? ''));
+  assert.ok(inDrive.length >= 20, `only ${inDrive.length} originals open in the Drive`);
 });
 
 test('only rehosted originals are served', () => {

@@ -1,6 +1,3 @@
-# Saved web pages are third-party HTML. Serve them sandboxed: no scripts, no same-origin access.
-/saved-pages/*
-  Content-Security-Policy: sandbox
 # Search index chunks have content-hashed names, so they never change once deployed.
 # pagefind.js, pagefind-entry.json and the wasm files keep their names and stay revalidated.
 /pagefind/fragment/*

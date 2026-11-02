@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/copy-raw-originals.mjs && pagefind --site dist",
+    "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "test": "node --test src/lib/wiki.test.js"
   },

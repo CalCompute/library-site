@@ -37,7 +37,7 @@ export function repoTree() {
   }, root);
   for (const p of paths) {
     const segs = p.split('/'), name = segs.pop(), [modified, subject] = last.get(p) ?? ['', ''];
-    dir(segs).files.push({ name, path: p, url: `${REPO}/blob/main/${enc(p)}`, route: routeOf(p), modified, commit: subject });
+    dir(segs).files.push({ name, path: p, url: `${REPO}/blob/main/${enc(p)}`, route: p.endsWith('.md') ? routeOf(p) : null, modified, commit: subject });
   }
   // A folder shows the newest commit among its contents, as GitHub does.
   const sort = (n) => {

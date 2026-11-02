@@ -1,5 +1,5 @@
 {
-  // Cloudflare Pages project. GitHub Actions deploys it: .github/workflows/deploy.yml
+  // Cloudflare Pages project. Cloudflare builds it from GitHub on every push (see README.md, Deploy).
   "name": "calcompute-library",
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-10-01"
