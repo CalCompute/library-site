@@ -21,12 +21,12 @@ npm test         # checks links, rehosting, the suggestion email, and that the l
 
 ## Deploy
 
-Cloudflare Pages builds and publishes the site from GitHub. There are no workflows, tokens or secrets: both repos are public.
+A Cloudflare Worker serves the built site as static assets (`wrangler.jsonc`). Cloudflare builds and deploys it from GitHub. There are no workflows, tokens or secrets: both repos are public.
 
-- **Project:** a Cloudflare Pages project `calcompute-library`, connected to `CalCompute/library-site`, production branch `main`, custom domain https://research.californiacompute.org.
+- **Worker:** `calcompute-library`, connected to `CalCompute/library-site`, branch `main`, custom domain https://research.californiacompute.org.
 - **Build command:** `git clone https://github.com/CalCompute/library-wiki.git ../library-wiki && npm run build`. The full clone gives the GitHub view on the home page each file's last change.
-- **Output folder:** `dist`. Node comes from `.node-version`.
-- **Library changes:** Cloudflare watches only this repo. A Pages deploy hook, added as a push webhook on `CalCompute/library-wiki` (Settings, Webhooks), rebuilds the site when the library changes.
+- **Deploy command:** `npx wrangler deploy`. It uploads `dist/`. Node comes from `.node-version`.
+- **Library changes:** Cloudflare watches only this repo. To rebuild when `CalCompute/library-wiki` changes, add the Worker's build hook (if Cloudflare offers one for the Worker) as a push webhook on that repo, or push to this repo.
 
 ## Credits
 

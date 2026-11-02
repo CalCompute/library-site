@@ -3,7 +3,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { slug } from 'github-slugger';
 
 export const WIKI = path.resolve(process.env.WIKI_DIR || path.join(process.cwd(), '..', 'library-wiki'));
 export const TREES = ['wiki', 'raw'];

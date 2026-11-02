@@ -1,6 +1,7 @@
 {
-  // Cloudflare Pages project. Cloudflare builds it from GitHub on every push (see README.md, Deploy).
+  // Cloudflare Worker that serves the built site (dist/) as static assets. Cloudflare builds and deploys it
+  // from GitHub on every push (see README.md, Deploy). The name must match the Worker's name in Cloudflare.
   "name": "calcompute-library",
-  "pages_build_output_dir": "./dist",
-  "compatibility_date": "2026-10-01"
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "./dist", "html_handling": "auto-trailing-slash" }
 }
