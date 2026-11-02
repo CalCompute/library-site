@@ -1,0 +1,146 @@
+---
+import '../styles/global.css';
+import { load } from '../lib/load.js';
+import SuggestDialog from '../components/SuggestDialog.astro';
+
+const DESCRIPTION = 'Public research sources for the CalCompute Framework Report, grouped by the seven elements of California Government Code section 11546.8 (SB 53).';
+// redirect: a page of a Drive item sends its visitor to the Drive (lib/wiki.js driveHref).
+const { title, wide = false, bare = false, footer: showFooter = true, redirect = null, description = DESCRIPTION } = Astro.props;
+const m = await load();
+const nav = [['/graph/', 'Graph'], ['/library/', 'Library'], ['/statute/', 'Statute'], ['/about/', 'About']];
+const SLACK = 'https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A';
+const footer = [
+  ['Report', [['/statute/', 'Statute'], ['/wiki/elements/statutory-requirements/', 'Statutory requirements'], ['/wiki/overview/', 'Overview']]],
+  ['Library', [['/library/', 'Sources'], ['/graph/', 'Graph'], ['/wiki/index/', 'Index'], ['/#drive', 'Drive'], ['/#github', 'GitHub'], ['/raw/', 'Originals (raw/)']]],
+  ['Take part', [['#suggest', 'Suggest reading'], [SLACK, 'Slack ↗'], ['https://www.linkedin.com/company/calcompute/', 'LinkedIn ↗'], ['https://x.com/CalCompute', 'X ↗'], ['/about/', 'About'], ['/how-it-works/', 'How it works']]],
+];
+const here = Astro.url.pathname;
+// The service's logo beside each footer link that goes to it (the GitHub, LinkedIn and X marks are black; inverted on the navy footer).
+const logoOf = (href) => (href === SLACK ? '/images/apps/slack.svg' : /github\.com|#github$/.test(href) ? '/images/apps/github.svg'
+  : /drive\.google\.com|#drive$/.test(href) ? '/images/apps/google-drive.svg' : /linkedin\.com/.test(href) ? '/images/apps/linkedin.svg'
+  : /\/\/x\.com/.test(href) ? '/images/apps/x.svg' : null);
+const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.replace(/a\/$/, '')));
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    {redirect && <meta http-equiv="refresh" content={`0; url=${redirect}`} />}
+    <title>{title ? `${title} · CalCompute Research Library` : 'CalCompute Research Library'}</title>
+    <link rel="icon" href="/favicons/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicons/favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.png" />
+    <link rel="manifest" href="/favicons/site.webmanifest" />
+    <meta name="theme-color" content="#72cdf4" />
+  </head>
+  <body>
+    <header class="fixed top-0 inset-x-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
+        <a href="/" class="shrink-0 flex items-center gap-2" aria-label="CalCompute Research Library, home">
+          <img src="/images/brand/calcompute-wordmark-sticker.svg" alt="CalCompute" height="32" width="126" class="h-8 w-auto" />
+          <span class="text-xs uppercase tracking-wide text-gray-400">research</span>
+        </a>
+        <nav class="ml-auto min-w-0 overflow-x-auto overflow-y-hidden">
+          <ul class="flex justify-end-safe gap-1 text-sm whitespace-nowrap">
+            {nav.map(([href, label]) => (
+              <li><a href={href} class={`block px-2 py-1 rounded ${active(href) ? 'bg-uc-blue-dark text-white' : 'text-gray-600 hover:text-gray-900'}`}>{label}</a></li>
+            ))}
+          </ul>
+        </nav>
+        <a href="#suggest" class="shrink-0 text-sm btn whitespace-nowrap">Suggest reading</a>
+        <a id="search-open" href="/search/" class="text-sm border border-gray-300 rounded-md px-2.5 py-1 text-gray-600 hover:text-gray-900 whitespace-nowrap" aria-label="Search" aria-keyshortcuts="Control+K Meta+K">
+          Search <kbd class="text-xs text-gray-400">⌘K</kbd>
+        </a>
+      </div>
+    </header>
+
+    <dialog id="search" aria-label="Search" class="w-[min(680px,calc(100vw-2rem))] mt-20 mx-auto rounded-xl p-0 backdrop:bg-black/30">
+      <form method="get" action="/search/" role="search" class="p-3 border-b border-gray-200">
+        <input id="qs" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search the library"
+          role="combobox" aria-expanded="false" aria-controls="qs-list" aria-autocomplete="list" aria-label="Search the library"
+          class="w-full text-lg px-2 py-1.5 focus:outline-none" />
+      </form>
+      <ul id="qs-list" role="listbox" aria-label="Pages" class="max-h-[60vh] overflow-y-auto"></ul>
+      <p class="px-4 py-2 text-xs text-gray-500 border-t border-gray-200">↑ ↓ choose a page · Enter searches everything, with exact title matches first · <code>kind:source</code> and other filters work there · Esc closes</p>
+    </dialog>
+
+    <main class={bare ? 'pt-14' : `pt-20 pb-16 px-4 ${wide ? 'max-w-7xl' : 'max-w-6xl'} mx-auto`}>
+      <slot />
+    </main>
+
+    {showFooter && <footer class="bg-uc-navy text-gray-300">
+      <div class="max-w-7xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-[auto_1fr_1fr_1fr]">
+        <a href="/" aria-label="Home"><img src="/images/brand/calcompute-icon-white.svg" alt="" width="45" height="40" class="h-10 w-auto" /></a>
+        {footer.map(([title, links]) => (
+          <div>
+            <h2 class="text-sm font-medium text-white mb-3">{title}</h2>
+            <ul class="space-y-1.5 text-sm">
+              {links.map(([href, label]) => <li><a class="hover:text-white inline-flex items-center gap-1.5" href={href} {...(href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>{logoOf(href) && <img src={logoOf(href)} alt="" class={`h-3.5 w-auto ${/github|linkedin|\/x\.svg/.test(logoOf(href)) ? 'invert' : ''}`} />}{label}</a></li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p class="max-w-7xl mx-auto px-4 pb-8 text-xs text-gray-400">This library is a tool to navigate and explore the research. The consortium does not use AI to write the CalCompute Framework Report.</p>
+    </footer>}
+
+    <SuggestDialog />
+
+    <script>
+      // Header search: page titles from /graph.json as you type. Enter on a title chosen with the arrow keys opens it;
+      // any other Enter goes to /search/, which pins exact title matches above the other results.
+      type Hit = { id: string; href?: string; label: string; desc?: string; img?: string; imgKind?: string; system?: string };
+      const dlg = document.getElementById('search') as HTMLDialogElement;
+      const qs = document.getElementById('qs') as HTMLInputElement, qsList = document.getElementById('qs-list')!;
+      const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+      const APPS: Record<string, string> = { drive: 'google-drive.svg' };
+      let pages: Hit[] | null = null, hits: Hit[] = [], at = -1;
+      const all = () => `/search/?q=${encodeURIComponent(qs.value.trim())}`;
+      function render() {
+        const q = qs.value.trim();
+        const row = (i: number, href: string, inner: string) =>
+          `<li role="option" id="qs-${i}" aria-selected="${i === at}"><a href="${esc(href)}" class="flex items-center gap-3 px-4 py-2 ${i === at ? 'bg-[#eaf6fc]' : 'hover:bg-gray-50'}">${inner}</a></li>`;
+        const icon = (h: Hit) => h.img
+          ? `<img src="${esc(h.img)}" alt="" class="h-7 w-7 shrink-0 ${h.imgKind === 'photo' ? 'rounded-full object-cover' : 'rounded object-contain'}">`
+          : APPS[h.system!] ? `<img src="/images/apps/${APPS[h.system!]}" alt="" class="h-5 w-7 shrink-0 object-contain">`
+          : '<span class="h-7 w-7 shrink-0 grid place-items-center text-gray-400" aria-hidden="true">▤</span>';
+        qsList.innerHTML = !q ? '' : hits.map((h, i) => row(i, h.href ?? h.id, `${icon(h)}<span class="min-w-0"><span class="block truncate text-gray-900">${esc(h.label)}</span>${h.desc ? `<span class="block truncate text-xs text-gray-500">${esc(h.desc)}</span>` : ''}</span>`)).join('')
+          + row(hits.length, all(), `<span class="h-7 w-7 shrink-0 grid place-items-center text-gray-400" aria-hidden="true">⌕</span><span>Search all pages for <b>${esc(q)}</b></span>`);
+        qs.setAttribute('aria-expanded', String(!!q));
+        at >= 0 ? qs.setAttribute('aria-activedescendant', `qs-${at}`) : qs.removeAttribute('aria-activedescendant');
+        qsList.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+      }
+      function suggest() {
+        const q = qs.value.trim().toLowerCase(), words = q.split(/\s+/);
+        const starts = (h: Hit) => (h.label.toLowerCase().startsWith(q) ? 0 : 1);
+        hits = !q || !pages ? [] : pages.filter((h) => words.every((w) => h.label.toLowerCase().includes(w)))
+          .sort((a, b) => starts(a) - starts(b) || a.label.length - b.label.length).slice(0, 8);
+        at = -1; render();
+      }
+      async function open() {
+        if (location.pathname.startsWith('/search')) return (document.getElementById('sq') as HTMLInputElement | null)?.focus();
+        dlg.showModal(); qs.focus(); qs.select();
+        pages ??= await fetch('/graph.json').then((r) => r.json()).then((g) => g.nodes.filter((n: Hit) => n.id.startsWith('/'))).catch(() => []);
+        suggest();
+      }
+      qs.addEventListener('input', suggest);
+      qs.addEventListener('keydown', (e) => {
+        const n = qs.value.trim() ? hits.length + 1 : 0;
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (n) { at = e.key === 'ArrowDown' ? (at + 1) % n : at <= 0 ? n - 1 : at - 1; render(); } }
+        else if (e.key === 'Enter') {
+          e.preventDefault();
+          const q = qs.value.trim().toLowerCase(); if (!q) return void (location.href = '/search/');
+          location.href = at >= 0 && at < hits.length ? hits[at].href ?? hits[at].id : all();
+        }
+      });
+      document.getElementById('search-open')!.addEventListener('click', (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); open(); });
+      addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); open(); } });
+      dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+
+    </script>
+  </body>
+</html>

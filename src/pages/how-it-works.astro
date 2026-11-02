@@ -1,0 +1,52 @@
+---
+// How the library is built and kept: the pattern, the schema (library-wiki/AGENTS.md), each skill, and the log.
+import Layout from '../layouts/Layout.astro';
+import { render } from 'astro:content';
+import { load } from '../lib/load.js';
+const m = await load();
+const byId = (id) => m.meta.find((e) => e.id === id);
+const Agents = byId('agents') ? (await render(byId('agents'))).Content : null;
+const skills = await Promise.all(m.meta.filter((e) => /skills\/[^/]+\/skill$/.test(e.id)).sort((a, b) => a.id.localeCompare(b.id))
+  .map(async (e) => ({ name: e.id.split('/').at(-2), title: e.data.name, description: e.data.description, Content: (await render(e)).Content })));
+const recent = m.status.entries.slice(-10).reverse();
+---
+<Layout title="How it works">
+  <article class="article-prose max-w-3xl">
+    <h1>How it works</h1>
+    <p class="not-prose rounded-md border border-uc-blue/30 bg-[#eaf6fc] px-4 py-3 text-sm text-uc-navy">This library is a tool to navigate and explore the research. An AI agent keeps its pages and links current. The consortium does not use AI to write the CalCompute Framework Report.</p>
+    <p>The library follows Andrej Karpathy's LLM-wiki pattern. Three parts work together, and all of them are public:</p>
+    <ol>
+      <li><strong>Original documents</strong> in <a href="/raw/"><code>raw/</code></a>. Nobody changes them. Only government documents and open-licensed files are kept; other sources link to their publisher.</li>
+      <li><strong>Pages</strong> in <code>wiki/</code>: one page per source, a reading list per element, publishers and members, and answers to visitors' questions. An agent writes them and keeps them current; a person checks each change.</li>
+      <li><strong>One schema</strong>, <code>AGENTS.md</code>, below. It holds every rule. Each operation is a skill, a step list that any coding agent or a person can follow.</li>
+    </ol>
+    <p>The consortium's own calls and messages are not public. The graph shows each one as a hollow marker with its kind and date, connected to the reading lists and pages it relates to, and <a href="/#this-week">This week</a> on the home page shows the element calls and the community sync. Both come from <code>activity.json</code>, which the consortium's team publishes. It holds dates and counts only.</p>
+    <p>This site turns the files in <a href="https://github.com/CalCompute/library-wiki" target="_blank" rel="noopener">CalCompute/library-wiki</a> into web pages on every push, with the graph, search and the Drive browser.</p>
+    <h2>Where a suggestion goes</h2>
+    <ol>
+      <li>You press <a href="#suggest">Suggest reading</a>. Your own email program opens with a message to team@californiacompute.org.</li>
+      <li>The suggestion goes on the <a href="/wiki/analyses/suggestions/">Suggestions</a> page, without your name.</li>
+      <li>A consortium member reads it and decides.</li>
+      <li>An approved source gets a source page and a place on its element's reading list. An approved question gets an answer page in <a href="/wiki/analyses/suggestions/">analyses</a>.</li>
+    </ol>
+    <h2>Recent changes</h2>
+    <ul>{recent.map((e) => <li><span class="text-gray-500">{e.date} · {e.type}</span> {e.title}{e.summary && <>: {e.summary}</>}</li>)}</ul>
+    <p><a href="/wiki/log/">The whole log</a></p>
+  </article>
+
+  {Agents && <section id="agents-md" class="mt-12 border-t border-gray-200 pt-8 scroll-mt-20">
+    <h2 class="text-xl font-bold mb-1">AGENTS.md</h2>
+    <p class="text-sm text-gray-500 mb-4">The schema, as it is in the repository.</p>
+    <article class="article-prose max-w-3xl [&>h1:first-child]:hidden"><Agents /></article>
+  </section>}
+
+  <section id="skills" class="mt-12 border-t border-gray-200 pt-8 scroll-mt-20">
+    <h2 class="text-xl font-bold mb-4">Skills (.agents/skills/)</h2>
+    {skills.map((s) => (
+      <section id={`skill-${s.name}`} class="mb-10 scroll-mt-20">
+        <p class="text-sm text-gray-500 mb-2"><code>.agents/skills/{s.name}/SKILL.md</code> · {s.description}</p>
+        <article class="article-prose max-w-3xl"><s.Content /></article>
+      </section>
+    ))}
+  </section>
+</Layout>

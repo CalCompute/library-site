@@ -1,0 +1,185 @@
+---
+// A tree of folders and files as a file manager: tree, breadcrumb, contents, search, preview.
+// lib/drive.js builds the tree; ui holds the labels.
+// View and open only: there are no controls that change anything. Files open in the Drive, never at a mirror copy.
+// Rows can be colored by role (ui.short): writes, reads or ignores.
+const { tree, ui, height = '520px' } = Astro.props;
+---
+<div class="drive-fm card flex flex-col overflow-hidden" style={`height:${height}`} data-drive data-context={ui.context}>
+  <script type="application/json" set:html={JSON.stringify({ tree, ui }).replace(/</g, '\\u003c')} />
+  <div class="flex flex-wrap items-center gap-2 border-b border-gray-200 px-3 py-2 bg-white">
+    <button class="md:hidden chip" data-tree-toggle aria-label="Folders">☰</button>
+    <nav class="flex flex-wrap items-center gap-1 text-sm min-w-0 flex-1" data-crumbs data-context-now aria-label="Folder path"></nav>
+    {ui.short && <div class="flex flex-wrap gap-1 text-xs" aria-label="Colors">{Object.entries(ui.short).map(([k, v]) => <span class="chip whitespace-nowrap" data-role={k} title={ui.roles?.[k]}>{v}</span>)}</div>}
+    <input type="search" placeholder={ui.search} class="border border-gray-300 rounded-md px-2.5 py-1 text-sm w-48" data-q />
+  </div>
+  <div class="relative flex flex-1 min-h-0">
+    <aside class="hidden md:block w-60 shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50/60 py-2 text-sm" data-tree></aside>
+    <div class="flex-1 min-w-0 overflow-auto bg-white">
+      <table class="dtable fm-table">
+        <thead><tr><th>Name</th><th data-pathcol hidden>Folder</th><th>Kind</th>{ui.short && <th class="max-md:hidden">Role</th>}</tr></thead>
+        <tbody data-rows></tbody>
+      </table>
+      <p class="p-4 text-sm text-gray-500" data-empty hidden>{ui.empty}</p>
+    </div>
+    <aside class="w-[42%] min-w-80 shrink-0 border-l border-gray-200 bg-white flex flex-col max-md:absolute max-md:inset-0 max-md:w-auto max-md:min-w-0 max-md:z-10" data-preview hidden>
+      <div class="flex items-start gap-2 border-b border-gray-200 px-3 py-2">
+        <button class="chip md:hidden" data-close aria-label="Back">←</button>
+        <div class="min-w-0 flex-1">
+          <div class="font-medium truncate" data-p-name data-context-now></div>
+          <div class="text-xs text-gray-500" data-p-meta></div>
+        </div>
+        <a class="btn !py-1 !px-3 !text-xs" data-p-drive target="_blank" rel="noopener">{ui.openIcon && <img src={ui.openIcon} alt="" class="h-3.5 w-auto" />}{ui.open}</a>
+        <button class="hidden md:inline text-gray-400 hover:text-gray-700 px-1" data-close aria-label="Close preview">✕</button>
+      </div>
+      <p class="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600" data-p-role hidden></p>
+      <div class="flex-1 overflow-auto p-4"><article class="article-prose text-sm [&>h1:first-child]:text-xl" data-p-body></article></div>
+    </aside>
+  </div>
+</div>
+
+<style is:global>
+  .fm-table tbody tr { cursor: pointer; }
+  .fm-table tbody tr:focus { outline: none; background: #bde3f6; }
+  .fm-table td { white-space: nowrap; }
+  .fm-table td:first-child { white-space: normal; min-width: 13rem; }
+  .fm-tree button { text-align: left; }
+  .fm-tree .sel { background: #bde3f6; color: #002033; font-weight: 500; }
+  .fm-table tbody tr.cur td { background: #eaf6fc; }
+  .drive-fm .chip[data-role="writes"] { background: #eaf6fc; border-color: #1295d8; color: #005581; }
+  .drive-fm .chip[data-role="reads"] { background: #e6f4ea; border-color: #3d9a5b; color: #1e6b35; }
+  .drive-fm .chip[data-role="ignores"] { background: #f3f4f6; border-color: #d1d5db; color: #6b7280; }
+  .fm-table tr[data-bot="writes"] td:first-child { box-shadow: inset 4px 0 0 #1295d8; }
+  .fm-table tr[data-bot="reads"] td:first-child { box-shadow: inset 4px 0 0 #3d9a5b; }
+  .fm-table tr[data-bot="ignores"] td:first-child { box-shadow: inset 4px 0 0 #d1d5db; }
+  .fm-table tr[data-bot="ignores"] td { color: #9ca3af; }
+  .fm-tree [data-bot="ignores"] { color: #9ca3af; }
+</style>
+
+<script>
+  type F = { name: string; kind: string; modified: string; by: string; drive: string; preview: string | null; note: string; role?: string; cites?: number };
+  type D = { name: string; id: string | null; url: string; note: string; bot: string; children: D[]; files: F[]; path?: string; parent?: D };
+  type UI = { open: string; context?: string; search: string; hash: string | null; empty: string; short?: Record<string, string>; roles?: Record<string, string> };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const ICON: Record<string, string> = { Folder: '#9ca3af', Doc: '#1295d8', Sheet: '#00778b', Slides: '#ffb511', PDF: '#e4002b' };
+  const APP: Record<string, string> = { Doc: '/images/apps/google-docs.svg', Sheet: '/images/apps/google-sheets.svg' };
+  const icon = (kind: string) =>
+    APP[kind] ? `<img src="${APP[kind]}" alt="" width="12" height="16" class="inline h-4 w-3 -mt-0.5 mr-2">`
+    : kind === 'Folder'
+      ? `<svg width="16" height="14" viewBox="0 0 16 14" class="inline -mt-0.5 mr-2"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3.6l1.6 1.8h5.8A1.5 1.5 0 0 1 15 4.3v7.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 11.5z" fill="${ICON.Folder}"/></svg>`
+      : `<svg width="13" height="16" viewBox="0 0 13 16" class="inline -mt-0.5 mr-2"><path d="M1 1h7.5L12 4.5V15H1z" fill="${ICON[kind] ?? '#6b7280'}"/><path d="M8.5 1v3.5H12" fill="#fff" opacity=".5"/></svg>`;
+
+  document.querySelectorAll<HTMLElement>('[data-drive]').forEach((el, idx) => {
+    const { tree: root, ui }: { tree: D; ui: UI } = JSON.parse(el.querySelector('script[type="application/json"]')!.textContent!);
+    const byPath = new Map<string, D>();
+    const allFiles: F[] = [];
+    const index = (d: D, path: string, parent?: D) => { d.path = path; d.parent = parent; byPath.set(path, d); allFiles.push(...d.files); d.children.forEach((c) => index(c, path ? `${path}/${c.name}` : c.name, d)); };
+    index(root, '');
+    const $ = (s: string) => el.querySelector<HTMLElement>(s)!;
+    const treeEl = $('[data-tree]'), rowsEl = $('[data-rows]'), crumbsEl = $('[data-crumbs]'), q = $('[data-q]') as HTMLInputElement;
+    const emptyEl = $('[data-empty]'), pathCol = $('[data-pathcol]');
+    const pane = $('[data-preview]'), pBody = $('[data-p-body]'), pDrive = $('[data-p-drive]') as HTMLAnchorElement;
+    let current: F | null = null;
+    const cache = new Map<string, string>();
+    const preview = async (f: F) => {
+      current = f; pane.hidden = false;
+      $('[data-p-name]').textContent = f.name;
+      $('[data-p-meta]').textContent = f.kind;
+      pDrive.href = f.drive;
+      const pRole = $('[data-p-role]');
+      pRole.hidden = !(f.role && ui.roles);
+      if (f.role && ui.roles) pRole.innerHTML = esc(ui.roles[f.role]) + (f.role !== 'reads' ? '' : f.cites ? ` Cited by ${f.cites} wiki page${f.cites === 1 ? '' : 's'}.` : ' No wiki page cites it yet.');
+      rowsEl.querySelectorAll('tr.cur').forEach((r) => r.classList.remove('cur'));
+      rowsEl.querySelector(`tr[data-file="${allFiles.indexOf(f)}"]`)?.classList.add('cur');
+      if (!f.preview) { pBody.innerHTML = `<p class="text-gray-500">No preview. <a class="underline text-uc-blue-dark" href="${esc(f.drive)}" target="_blank" rel="noopener">Open it in ${esc(ui.context ?? 'the Drive')} ↗</a></p>`; return; }
+      pBody.innerHTML = '<p class="text-gray-400">Loading…</p>';
+      try {
+        const html = cache.get(f.preview) ?? (await (await fetch(f.preview)).text());
+        cache.set(f.preview, html);
+        if (current === f) pBody.innerHTML = html;
+      } catch { if (current === f) pBody.innerHTML = '<p class="text-gray-500">The preview could not load.</p>'; }
+    };
+    const closePreview = () => { pane.hidden = true; current = null; rowsEl.querySelectorAll('tr.cur').forEach((r) => r.classList.remove('cur')); };
+    const useHash = idx === 0 && !!ui.hash;
+    const fromHash = () => { const m = location.hash.match(/^#(\w+)=(.*)$/); return m && m[1] === ui.hash ? decodeURIComponent(m[2]) : null; };
+    let sel = (useHash && fromHash() !== null && byPath.has(fromHash()!)) ? fromHash()! : '';
+    const open = new Set<string>(['', ...[...byPath.keys()].filter((p) => p === 'Framework Report')]);
+    for (let d = byPath.get(sel); d?.parent; d = d.parent) open.add(d.parent.path!);
+
+    const count = (d: D): number => d.files.length + d.children.reduce((a, c) => a + count(c), 0);
+    const treeHtml = (d: D, depth: number): string => {
+      const kids = d.children.length > 0, isOpen = open.has(d.path!);
+      return `<li><div class="flex items-center" style="padding-left:${depth * 14 + 6}px">
+        <button class="w-5 text-gray-500 text-xs" data-toggle="${esc(d.path!)}" ${kids ? '' : 'disabled style="visibility:hidden"'} aria-label="Expand">${isOpen ? '▾' : '▸'}</button>
+        <button class="flex-1 truncate rounded px-1.5 py-1 ${d.path === sel ? 'sel' : 'hover:bg-gray-100'}" data-select="${esc(d.path!)}" data-bot="${esc(d.bot)}" title="${esc(d.note || d.name)}">${icon('Folder')}${esc(d.name)} <span class="text-xs text-gray-400">${count(d)}</span></button>
+      </div>${kids && isOpen ? `<ul>${d.children.map((c) => treeHtml(c, depth + 1)).join('')}</ul>` : ''}</li>`;
+    };
+    const row = (kind: string, name: string, attrs: string, f?: F, folder?: string, note = '', bot = f?.role ?? '') =>
+      `<tr tabindex="0" ${attrs} data-bot="${esc(bot)}"><td>${icon(kind)}<span class="font-medium">${esc(name)}</span>${note ? `<div class="text-xs text-gray-500 ml-6 whitespace-normal">${esc(note)}</div>` : ''}</td>
+        ${folder !== undefined ? `<td class="text-gray-500">${esc(folder || root.name)}</td>` : ''}
+        <td class="text-gray-500">${kind}</td>${ui.short ? `<td class="max-md:hidden">${f?.role ? `<span class="chip whitespace-nowrap" data-role="${f.role}" title="${esc(ui.roles?.[f.role] ?? '')}">${esc(ui.short[f.role])}</span>${f.cites ? `<div class="text-xs text-gray-400 mt-0.5 ml-1">cited by ${f.cites}</div>` : ''}` : ''}</td>` : ''}</tr>`;
+
+    const render = () => {
+      const d = byPath.get(sel)!, query = q.value.trim().toLowerCase();
+      treeEl.innerHTML = `<ul class="fm-tree">${treeHtml(root, 0)}</ul>`;
+      crumbsEl.innerHTML = [...(function* () { const chain: D[] = []; for (let x: D | undefined = d; x; x = x.parent) chain.unshift(x); yield* chain; })()]
+        .map((x, i, a) => `<button class="hover:underline ${i === a.length - 1 ? 'font-medium text-gray-900' : 'text-uc-blue-dark'}" data-select="${esc(x.path!)}">${esc(x.name)}</button>`).join('<span class="text-gray-400">/</span>');
+      let html = '';
+      if (query) {
+        pathCol.hidden = false;
+        for (const [p, x] of byPath) {
+          if (p && x.name.toLowerCase().includes(query)) html += row('Folder', x.name, `data-go="${esc(p)}"`, undefined, x.parent!.path!, x.note, x.bot);
+          for (const f of x.files) if (f.name.toLowerCase().includes(query)) html += row(f.kind, f.name, `data-file="${allFiles.indexOf(f)}"`, f, p);
+        }
+      } else {
+        pathCol.hidden = true;
+        html = d.children.map((c) => row('Folder', c.name, `data-go="${esc(c.path!)}"`, undefined, undefined, c.note, c.bot)).join('') +
+          d.files.map((f) => row(f.kind, f.name, `data-file="${allFiles.indexOf(f)}"`, f, undefined, f.note)).join('');
+      }
+      rowsEl.innerHTML = html;
+      emptyEl.hidden = !!html;
+      if (current) rowsEl.querySelector(`tr[data-file="${allFiles.indexOf(current)}"]`)?.classList.add('cur');
+    };
+    const select = (p: string) => {
+      sel = p; open.add(p); q.value = '';
+      for (let d = byPath.get(p); d?.parent; d = d.parent) open.add(d.parent.path!);
+      if (useHash) history.replaceState(null, '', p ? `#${ui.hash}=${encodeURIComponent(p)}` : location.pathname);
+      render();
+      (rowsEl.querySelector('tr') as HTMLElement | null)?.focus({ preventScroll: true });
+    };
+    const fileOf = (tr: HTMLElement) => (tr.dataset.file !== undefined ? allFiles[+tr.dataset.file] : null);
+    // Click: folder opens, file previews. Double click or Enter: file opens in the Drive.
+    const activate = (tr: HTMLElement, openFile = false) => {
+      if (tr.dataset.go !== undefined) return select(tr.dataset.go);
+      const f = fileOf(tr);
+      if (f && openFile) window.open(f.drive, '_blank', 'noopener');
+      else if (f) preview(f);
+    };
+
+    el.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      const tog = t.closest<HTMLElement>('[data-toggle]');
+      if (tog) { const p = tog.dataset.toggle!; open.has(p) ? open.delete(p) : open.add(p); render(); return; }
+      const s = t.closest<HTMLElement>('[data-select]');
+      if (s) { select(s.dataset.select!); return; }
+      if (t.closest('[data-close]')) { closePreview(); return; }
+      const tr = t.closest<HTMLElement>('tbody tr');
+      if (tr) activate(tr);
+      if (t.closest('[data-tree-toggle]')) treeEl.classList.toggle('hidden');
+    });
+    rowsEl.addEventListener('keydown', (e) => {
+      const tr = (e.target as HTMLElement).closest('tr') as HTMLElement | null;
+      if (!tr) return;
+      if (e.key === 'ArrowDown') { (tr.nextElementSibling as HTMLElement | null)?.focus(); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { (tr.previousElementSibling as HTMLElement | null)?.focus(); e.preventDefault(); }
+      else if (e.key === 'Enter') activate(tr, true);
+      else if (e.key === ' ') { activate(tr); e.preventDefault(); }
+      else if (e.key === 'Escape') closePreview();
+      else if (e.key === 'Backspace' && sel) { select(byPath.get(sel)!.parent!.path!); e.preventDefault(); }
+    });
+    rowsEl.addEventListener('dblclick', (e) => { const tr = (e.target as HTMLElement).closest<HTMLElement>('tr'); if (tr && fileOf(tr)) activate(tr, true); });
+    q.addEventListener('input', render);
+    if (useHash) addEventListener('hashchange', () => { const h = fromHash(); if (h !== null && byPath.has(h) && h !== sel) select(h); });
+    render();
+  });
+</script>

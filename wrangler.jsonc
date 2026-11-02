@@ -1,0 +1,6 @@
+{
+  // Cloudflare Pages project. GitHub Actions deploys it: .github/workflows/deploy.yml
+  "name": "calcompute-library",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-10-01"
+}

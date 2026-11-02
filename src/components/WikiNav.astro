@@ -1,0 +1,45 @@
+---
+// Docs-style sidebar for /wiki/[slug] and /docs/[slug]: only pages connected to this
+// one (links out, backlinks in) — never the full sister-page list. `toc` renders
+// on-page links too (mobile disclosure, and the left rail on lg screens via
+// tocClass="xl:hidden" — at xl+ the right-rail scrollspy TOC takes over).
+const { outlinks = [], backlinks = [], toc = [], tocClass = '' } = Astro.props;
+
+const sections = [
+  { label: 'Links to', items: outlinks },
+  { label: 'Referenced by', items: backlinks },
+].filter((s) => s.items.length > 0);
+---
+<nav class="text-sm">
+  {toc.length > 1 && (
+    <div class={`mb-5 ${tocClass}`}>
+      <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">On this page</div>
+      <ul class="border-l border-gray-200">
+        {toc.map((h) => (
+          <li>
+            <a
+              href={`#${h.slug}`}
+              class={`block py-1 pr-2 leading-snug text-gray-600 hover:text-gray-900 ${h.depth === 3 ? 'pl-6' : 'pl-3'}`}
+            >{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+
+  {sections.map((s) => (
+    <div class="mb-5 last:mb-0">
+      <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">{s.label}</div>
+      <ul class="border-l border-gray-200">
+        {s.items.map((item) => (
+          <li>
+            <a
+              href={item.id}
+              class="block py-1 pl-3 pr-2 leading-snug text-gray-600 hover:text-gray-900 hover:border-l hover:border-gray-400 hover:-ml-px transition-colors"
+            >{item.label}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</nav>

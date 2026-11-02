@@ -1,0 +1,154 @@
+---
+// The library-wiki repository in the site's styling, read like GitHub: owner / repo, then the whole repository as a
+// collapsible tree, each row with its latest commit, beside a preview. The preview shows the selected folder's README
+// (rendered at build time) under a README.md strip, or the folder's contents, or a file's commit and links. #repo=<path> holds the selection.
+// lib/github.js builds the tree.
+import { render } from 'astro:content';
+import { REPO } from '../lib/github.js';
+const { tree, readmes, height = '520px' } = Astro.props; // readmes: [{ folder, entry }]
+const shown = await Promise.all(readmes.map(async (r) => ({ folder: r.folder, Content: (await render(r.entry)).Content })));
+const owner = REPO.split('/').slice(0, -1).join('/');
+---
+<div class="card flex flex-col overflow-hidden" style={`height:${height}`} data-repo>
+  <script type="application/json" set:html={JSON.stringify(tree).replace(/</g, '\\u003c')} />
+  <div class="flex flex-wrap items-center gap-3 border-b border-gray-200 bg-gray-50 px-4 py-2.5">
+    <span class="text-base"><a class="text-uc-blue-dark hover:underline" href={owner} target="_blank" rel="noopener">CalCompute</a> <span class="text-gray-400">/</span> <a class="font-semibold text-uc-blue-dark hover:underline" href={REPO} target="_blank" rel="noopener">library-wiki</a></span>
+    <span class="chip">Public</span>
+    <span class="flex-1"></span>
+    <input type="search" placeholder="Go to file" aria-label="Go to file" class="border border-gray-300 rounded-md px-2.5 py-1 text-sm w-52" data-q />
+  </div>
+  <div class="relative flex flex-1 min-h-0">
+    <div class="flex-1 min-w-0 overflow-auto bg-white" role="tree" aria-label="library-wiki files" data-rows></div>
+    <aside class="w-[46%] min-w-80 shrink-0 border-l border-gray-200 bg-white flex flex-col max-md:absolute max-md:inset-0 max-md:w-auto max-md:min-w-0 max-md:z-10" data-preview>
+      <div class="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold" data-p-head>
+        <button class="chip md:hidden" data-close aria-label="Back">←</button>
+        <span class="inline-flex items-center gap-2 min-w-0" data-p-label><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2.5h4.5a1.5 1.5 0 0 1 1.5 1.5v9.5a1.2 1.2 0 0 0-1.2-1.2H2zM14 2.5H9.5A1.5 1.5 0 0 0 8 4v9.5a1.2 1.2 0 0 1 1.2-1.2H14z" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-linejoin="round"/></svg><span data-p-readme>README.md</span></span>
+      </div>
+      <div class="flex-1 overflow-auto">
+        <div class="p-4 text-sm" data-p-body></div>
+        {shown.map(({ folder, Content }) => <article class="article-prose text-sm px-5 py-4 [&>h1:first-child]:text-xl" data-readme={folder} hidden><Content /></article>)}
+      </div>
+    </aside>
+  </div>
+</div>
+
+<style is:global>
+  [data-repo] .repo-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.35rem 1rem; border-bottom: 1px solid #f1f3f5; font-size: 0.875rem; text-align: left; cursor: pointer; }
+  [data-repo] .repo-row:hover { background: #f6fbfe; }
+  [data-repo] .repo-row.sel { background: #eaf6fc; }
+  [data-repo] .repo-row:focus-visible { outline: 2px solid #1295d8; outline-offset: -2px; }
+  [data-repo] .repo-row .chev { width: 0.75rem; color: #9ca3af; flex-shrink: 0; transition: transform 0.12s; }
+  [data-repo] .repo-row[aria-expanded="true"] .chev { transform: rotate(90deg); }
+</style>
+
+<script>
+  type F = { name: string; path: string; url: string; route: string | null; modified: string; commit: string };
+  type D = { name: string; id: string; url: string; note: string; modified: string; commit: string; children: D[]; files: F[]; parent?: D };
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const FOLDER = '<svg width="16" height="14" viewBox="0 0 16 14" class="shrink-0" aria-hidden="true"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3.6l1.6 1.8h5.8A1.5 1.5 0 0 1 15 4.3v7.2a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 11.5z" fill="#72cdf4"/></svg>';
+  const FILE = '<svg width="14" height="16" viewBox="0 0 14 16" class="shrink-0" aria-hidden="true"><path d="M2 1.5h6.5L12 5v9.5H2z" fill="none" stroke="#9ca3af" stroke-width="1.2" stroke-linejoin="round"/><path d="M8.5 1.5V5H12" fill="none" stroke="#9ca3af" stroke-width="1.2"/></svg>';
+  const CHEV = '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2.5L7.5 6L4 9.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
+  // "3 days ago", as GitHub writes it; the date on hover.
+  const ago = (d: string) => {
+    if (!d) return '';
+    const days = Math.round((Date.now() - Date.parse(`${d}T12:00:00`)) / 864e5);
+    if (days < 1) return 'today';
+    if (days < 2) return 'yesterday';
+    if (days < 31) return `${days} days ago`;
+    const m = Math.round(days / 30.4);
+    return m < 12 ? `${m} month${m === 1 ? '' : 's'} ago` : `${Math.round(m / 12)} year${m < 18 ? '' : 's'} ago`;
+  };
+  const when = (d: string) => (d ? `<span title="${d}">${ago(d)}</span>` : '');
+
+  document.querySelectorAll<HTMLElement>('[data-repo]').forEach((el) => {
+    const root: D = JSON.parse(el.querySelector('script[type="application/json"]')!.textContent!);
+    const dirs = new Map<string, D>(), files = new Map<string, F>();
+    const index = (d: D, parent?: D) => { d.parent = parent; dirs.set(d.id, d); d.files.forEach((f) => files.set(f.path, f)); d.children.forEach((c) => index(c, d)); };
+    index(root);
+    const $ = (s: string) => el.querySelector<HTMLElement>(s)!;
+    const rows = $('[data-rows]'), q = $('[data-q]') as HTMLInputElement, pane = $('[data-preview]'), body = $('[data-p-body]');
+    const head = $('[data-p-head]'), label = $('[data-p-label]'), readmes = [...el.querySelectorAll<HTMLElement>('[data-readme]')];
+    const expanded = new Set<string>();
+    let sel = '';
+
+    const row = (path: string, depth: number, isDir: boolean, name: string, commit: string, date: string) =>
+      `<button type="button" class="repo-row${path === sel ? ' sel' : ''}" role="treeitem" data-path="${esc(path)}" data-dir="${isDir ? 1 : 0}"`
+      + `${isDir ? ` aria-expanded="${expanded.has(path)}"` : ''} style="padding-left:${1 + depth * 1.25}rem">`
+      + `${isDir ? CHEV : '<span class="w-3 shrink-0"></span>'}${isDir ? FOLDER : FILE}`
+      + `<span class="whitespace-nowrap">${esc(name)}</span>`
+      + `<span class="flex-1 min-w-0 truncate text-gray-500 max-md:hidden">${esc(commit)}</span>`
+      + `<span class="text-gray-500 whitespace-nowrap text-xs">${when(date)}</span></button>`;
+    const branch = (d: D, depth: number): string =>
+      d.children.map((c) => row(c.id, depth, true, c.name, c.commit, c.modified) + (expanded.has(c.id) ? branch(c, depth + 1) : '')).join('')
+      + d.files.map((f) => row(f.path, depth, false, f.name, f.commit, f.modified)).join('');
+
+    const draw = () => {
+      const term = q.value.trim().toLowerCase();
+      if (term) { // Go to file: every path that matches
+        const hits = [...files.values()].filter((f) => f.path.toLowerCase().includes(term)).slice(0, 200);
+        rows.innerHTML = hits.length ? hits.map((f) => row(f.path, 0, false, f.path, f.commit, f.modified)).join('') : '<p class="px-4 py-3 text-sm text-gray-500">No files match.</p>';
+        return;
+      }
+      rows.innerHTML = branch(root, 0);
+    };
+
+    const showReadme = (folder: string) => { let any = false; for (const r of readmes) { r.hidden = r.dataset.readme !== folder; any ||= !r.hidden; } return any; };
+    const preview = () => {
+      const f = files.get(sel), d = f ? null : dirs.get(sel) ?? root;
+      // A README, rendered under a "README.md" strip: the folder's own, or the README file itself. Otherwise the strip
+      // only holds the phone's Back button.
+      const readmeOf = f ? (f.name === 'README.md' ? f.path.split('/').slice(0, -1).join('/') : null) : d!.id;
+      const isReadme = readmeOf !== null && showReadme(readmeOf);
+      head.classList.toggle('md:hidden', !isReadme);
+      label.hidden = !isReadme;
+      $('[data-p-readme]').textContent = readmeOf ? `${readmeOf}/README.md` : 'README.md';
+      if (isReadme) { body.hidden = true; return; }
+      showReadme('\u0000');
+      body.hidden = false;
+      if (f) {
+        body.innerHTML = `<p class="font-medium mb-1"><a class="text-uc-blue-dark hover:underline" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)} ↗</a></p>`
+          + `<p class="text-gray-500 mb-3">${esc(f.path.split('/').slice(0, -1).join('/') || 'library-wiki')}</p>`
+          + (f.commit ? `<p class="mb-3">Last change: ${esc(f.commit)} · ${when(f.modified)}</p>` : '<p class="mb-3 text-gray-500">Not committed yet.</p>')
+          + (f.route ? `<a class="btn !py-1 !px-3 !text-sm" href="${esc(f.route)}">${f.name.endsWith('.md') ? 'Read it on this site' : 'Open it on this site'} →</a>` : '');
+        return;
+      }
+      body.innerHTML = `<p class="font-medium mb-1">${esc(d!.name)}</p>` + (d!.note ? `<p class="mb-3 text-gray-600">${esc(d!.note)}</p>` : '<div class="mb-3"></div>')
+        + `<ul class="space-y-1">${d!.children.map((c) => `<li>${FOLDER.replace('class="shrink-0"', 'class="inline mr-1.5 -mt-0.5"')}${esc(c.name)}</li>`).join('')}`
+        + `${d!.files.map((x) => `<li>${FILE.replace('class="shrink-0"', 'class="inline mr-1.5 -mt-0.5"')}${esc(x.name)}</li>`).join('')}</ul>`;
+    };
+
+    const select = (path: string, toggle = false) => {
+      if (dirs.has(path) && path && toggle) expanded.has(path) ? expanded.delete(path) : expanded.add(path);
+      sel = path;
+      history.replaceState(null, '', path ? `#repo=${encodeURIComponent(path)}` : location.pathname + location.search);
+      draw(); preview(); pane.hidden = false;
+      rows.querySelector<HTMLElement>(`[data-path="${CSS.escape(path)}"]`)?.focus({ preventScroll: true });
+    };
+    rows.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-path]');
+      if (!b) return;
+      if (q.value) { q.value = ''; for (let p = b.dataset.path!; p.includes('/');) { p = p.slice(0, p.lastIndexOf('/')); expanded.add(p); } }
+      select(b.dataset.path!, b.dataset.dir === '1');
+    });
+    rows.addEventListener('keydown', (e) => {
+      const list = [...rows.querySelectorAll<HTMLElement>('[data-path]')], i = list.indexOf(document.activeElement as HTMLElement);
+      if (i < 0) return;
+      const p = list[i].dataset.path!;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { list[i + (e.key === 'ArrowDown' ? 1 : -1)]?.focus(); e.preventDefault(); }
+      else if (e.key === 'ArrowRight' && dirs.has(p) && !expanded.has(p)) { expanded.add(p); select(p); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft') { if (expanded.has(p)) { expanded.delete(p); select(p); } else if (p.includes('/')) select(p.slice(0, p.lastIndexOf('/'))); e.preventDefault(); }
+    });
+    el.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => { pane.hidden = true; }));
+    q.addEventListener('input', draw);
+
+    // Start from #repo=<path>, its folders open; else the root and its README.
+    const m = location.hash.match(/^#repo=(.*)$/);
+    const start = m ? decodeURIComponent(m[1]) : '';
+    if (dirs.has(start) || files.has(start)) {
+      for (let p = start; p; p = p.includes('/') ? p.slice(0, p.lastIndexOf('/')) : '') if (dirs.has(p)) expanded.add(p);
+      sel = start;
+    }
+    draw(); preview();
+    if (window.matchMedia('(max-width: 767px)').matches && !sel) pane.hidden = true;
+  });
+</script>

@@ -1,0 +1,35 @@
+---
+// A folder in wiki/ or raw/: a one-line description, subfolders, pages and original files. The folder's README is a note
+// for the repository's keepers, shown in the GitHub view on the home page.
+import { files, dirs, routeOf, pageDate, RAW_FOLDERS } from '../lib/wiki.js';
+const { dir, m } = Astro.props;
+const kids = (set) => [...set].filter((p) => p.startsWith(dir + '/') && !p.slice(dir.length + 1).includes('/')).sort();
+const subdirs = kids(dirs);
+const items = kids(files);
+const about = RAW_FOLDERS[dir.split('/')[1]]?.[1];
+const parent = dir.split('/').slice(0, -1).join('/');
+const countIn = (d) => [...files].filter((f) => f.startsWith(d + '/')).length;
+---
+<a href={parent ? routeOf(parent) : '/'} class="text-sm text-uc-blue-dark hover:underline">← {parent || 'Report'}</a>
+<h1 class="text-3xl font-bold mt-4 mb-6">{dir}/</h1>
+{about && <p class="text-gray-600 -mt-3 mb-6">{about}</p>}
+{subdirs.length > 0 && (
+  <div class="flex flex-wrap gap-2 mb-6">
+    {subdirs.map((d) => <a class="chip text-sm" href={routeOf(d)}>{d.split('/').pop()}/ <span class="opacity-60">{countIn(d)}</span></a>)}
+  </div>
+)}
+<div class="card overflow-x-auto">
+  <table class="dtable">
+    <thead><tr><th>Page</th><th>Type</th><th>Updated</th><th>Links in</th></tr></thead>
+    <tbody>
+      {items.filter((f) => !f.endsWith('/README.md')).map((f) => {
+        const p = m.byRel.get(f);
+        return p ? (
+          <tr><td><a class="underline" href={p.route}>{p.title}</a></td><td>{p.data.origin ?? p.type}</td><td>{pageDate(p.data, f)}</td><td>{m.linksIn.get(f)?.length ?? 0}</td></tr>
+        ) : (
+          <tr><td><a class="underline text-gray-600" href={routeOf(f)}>{f.split('/').pop()}</a></td><td>original</td><td></td><td></td></tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>

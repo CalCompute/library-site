@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120" width="300" height="120" role="img" aria-label="SVIHTS — Silicon Valley Institute for Humane Technology Systems">
+  <g transform="translate(16 30)">
+    <rect x="0.5" y="0.5" width="35" height="35" fill="none" stroke="#a9b8c8" stroke-width="1"/>
+    <line x1="18" y1="0" x2="18" y2="36" stroke="#c8492e" stroke-width="1.5"/>
+    <line x1="0" y1="18" x2="36" y2="18" stroke="#c8492e" stroke-width="1.5"/>
+  </g>
+  <text x="64" y="52" fill="#e9e4d6" font-family="Fraunces, Georgia, 'Times New Roman', serif" font-weight="500" font-size="30" letter-spacing="0.3">SVIHTS</text>
+  <text x="64" y="72" fill="#a9b8c8" font-family="'IBM Plex Mono', 'Courier New', monospace" font-size="8.5" letter-spacing="0.9">SILICON VALLEY INSTITUTE FOR</text>
+  <text x="64" y="86" fill="#a9b8c8" font-family="'IBM Plex Mono', 'Courier New', monospace" font-size="8.5" letter-spacing="0.9">HUMANE TECHNOLOGY SYSTEMS</text>
+</svg>

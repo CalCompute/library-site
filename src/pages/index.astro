@@ -1,0 +1,101 @@
+---
+// Landing page: the Framework Report is what the statute asks for; the graph of the library's sources is the picture.
+import Layout from '../layouts/Layout.astro';
+import GraphView from '../components/WikiGraph.jsx';
+import FileBrowser from '../components/FileBrowser.astro';
+import TeamRow from '../components/TeamRow.astro';
+import { driveTree, DRIVE_UI } from '../lib/drive.js';
+import { repoTree } from '../lib/github.js';
+import RepoBrowser from '../components/RepoBrowser.astro';
+import Social from '../components/Social.astro';
+import { load, folderUrl } from '../lib/load.js';
+import Calendar from '../components/Calendar.astro';
+
+const m = await load();
+const s = m.status;
+// Hero stats: the consortium's research activity, as counts only, from library-wiki/activity.json.
+const stats = m.activity.stats ?? [];
+// Kunst Grotesk has no tabular figures (a 1 is 9 px wide, a 0 15.5 px at this size), so each digit sits in a cell as
+// wide as the widest digit, 0.645 em. The count-up script below renders the same way.
+const digits = (n) => n.toLocaleString('en-US').replace(/\d/g, '<span>$&</span>');
+const drive = folderUrl(m, 'CalCompute Library');
+---
+<Layout title="Report" bare>
+  <!-- The graph is contained in its element: on desktop the hero's right side, beside the text. Nodes bounce off its edges. -->
+  <section class="relative h-[calc(100svh-3.5rem)] bg-gradient-to-b from-[#eaf6fc] via-white to-[#fafafa] border-b border-gray-200">
+    <div class="absolute inset-0 lg:left-[37%]">
+      <GraphView data={m.graph} variant="radial" backdrop inPlace animate hideLinks filters={false} scale={0.8}
+        legendClass="left-4 lg:left-[calc(1rem-58.73%)] bottom-4" captionClass="left-4 lg:left-[calc(1rem-58.73%)] bottom-12" client:only="react" />
+    </div>
+    <div class="pointer-events-none relative z-10 max-w-7xl mx-auto px-4 pt-10">
+      <div class="text-xs uppercase tracking-[0.18em] text-uc-blue-dark mb-2">CalCompute Consortium · research library</div>
+      <h1 class="text-4xl sm:text-6xl font-bold text-uc-navy tracking-tight mb-5 max-w-xl">CalCompute Framework Report</h1>
+      <div class="inline-flex flex-wrap items-center gap-2 [&>a]:pointer-events-auto">
+        <a class="btn" href={drive ?? '#drive'} {...(drive ? { target: '_blank', rel: 'noopener' } : {})}><img src="/images/apps/google-drive.svg" alt="" class="h-4 w-auto" />Google Drive{drive && ' ↗'}</a>
+        <a class="btn" href="https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A" target="_blank" rel="noopener"><img src="/images/apps/slack.svg" alt="" class="h-4 w-auto" />Slack ↗</a>
+        <a class="btn" href="https://github.com/CalCompute" target="_blank" rel="noopener"><img src="/images/apps/github.svg" alt="" class="h-4 w-auto" />GitHub ↗</a>
+      </div>
+      <dl class="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+        {stats.map(([n, label, note]) => <div class="pointer-events-auto flex flex-col-reverse" title={note}><dt class="text-xs text-gray-500 whitespace-nowrap">{label}</dt><dd data-count-up={n} class="text-2xl font-bold text-uc-navy [&>span]:inline-block [&>span]:w-[0.645em] [&>span]:text-center" set:html={digits(n)} /></div>)}
+      </dl>
+      <p class="text-xs text-gray-500 mt-4">{m.pages.length} wiki pages · {m.graph.edges.length} links · updated {s.lastLog?.date ?? 'never'}</p>
+      <div class="mt-3 -ml-1.5 flex gap-1 [&>a]:pointer-events-auto"><Social class="text-gray-400 hover:text-uc-navy" /></div>
+    </div>
+  </section>
+
+  <section class="relative z-10 max-w-7xl mx-auto px-4 py-12">
+    <h2 class="text-xl font-bold mb-4">The seven elements</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      {m.elements.map((e) => (
+        <a href={e.hub?.route} class="card p-3 flex flex-col gap-2 group">
+          <div class="text-2xl font-bold text-uc-blue-dark leading-none">{e.L}</div>
+          <div class="text-sm font-medium group-hover:underline">{e.hub?.title.replace(/^[A-G] - /, '') ?? e.L}</div>
+          <div class="text-xs text-gray-500 mt-auto">{e.count} sources</div>
+        </a>
+      ))}
+    </div>
+    {m.checklist && <p class="text-sm mt-3"><a class="underline text-uc-blue-dark" href={m.checklist.route}>Statutory requirements</a> · <a class="underline text-uc-blue-dark" href="/statute/">The statute</a></p>}
+  </section>
+
+  <section id="this-week" class="relative z-10 max-w-7xl mx-auto px-4 pb-12 scroll-mt-16">
+    <h2 class="text-xl font-bold mb-4">This week</h2>
+    <Calendar cal={m.calendar} />
+  </section>
+
+  <section id="team" class="relative z-10 max-w-7xl mx-auto px-4 pb-12 scroll-mt-16">
+    <h2 class="text-xl font-bold mb-4">Team</h2>
+    <TeamRow m={m} />
+  </section>
+
+  <section id="drive" class="relative z-10 max-w-7xl mx-auto px-4 pb-16 scroll-mt-16">
+    <h2 class="text-xl font-bold mb-4 inline-flex items-center gap-2"><img src="/images/apps/google-drive.svg" alt="" class="h-5 w-auto" />Google Drive</h2>
+    <FileBrowser tree={driveTree(m)} ui={DRIVE_UI} height="520px" />
+  </section>
+
+  <section id="github" class="relative z-10 max-w-7xl mx-auto px-4 pb-16 scroll-mt-16">
+    <h2 class="text-xl font-bold mb-4 inline-flex items-center gap-2"><img src="/images/apps/github.svg" alt="" class="h-5 w-auto" />GitHub: library-wiki</h2>
+    <RepoBrowser tree={repoTree()} readmes={[
+      ...m.meta.filter((e) => e.id === 'readme').map((entry) => ({ folder: '', entry })),
+      ...m.pages.filter((p) => p.rel.endsWith('/README.md')).map((p) => ({ folder: p.rel.slice(0, -'/README.md'.length), entry: p.entry })),
+    ]} />
+  </section>
+  <script>
+    // Hero counters count up from 0 on load. Digits are fixed-width cells and each counter keeps its final width,
+    // so nothing moves but the digits. The final value is in the HTML: without JS or with reduced motion it just shows.
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const els = [...document.querySelectorAll<HTMLElement>('[data-count-up]')];
+      const digits = (n: number) => n.toLocaleString('en-US').replace(/\d/g, '<span>$&</span>');
+      // Start once the site font is in: widths measured on the fallback font would be wrong after the swap.
+      document.fonts.ready.then(() => {
+        for (const el of els) el.style.minWidth = `${el.getBoundingClientRect().width}px`; // final width, so the row never shifts
+        const t0 = performance.now(), MS = 1200;
+        const frame = (t: number) => {
+          const p = Math.min(1, Math.max(0, (t - t0) / MS)), e = 1 - (1 - p) ** 3;
+          for (const el of els) el.innerHTML = digits(Math.round(Number(el.dataset.countUp) * e));
+          if (p < 1) requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      });
+    }
+  </script>
+</Layout>

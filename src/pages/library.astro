@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import FilterTable from '../components/FilterTable.astro';
+import { load, folderUrl } from '../lib/load.js';
+import { toRows } from '../lib/wiki.js';
+const m = await load();
+const t = m.sourcesTable;
+const chips = ['Origin', 'Tier', 'Citable'];
+const lib = folderUrl(m, '/Library');
+const leg = folderUrl(m, '/Legislative Sources');
+const raw = ['legislative', 'web', 'shared'];
+---
+<Layout title="Sources" wide description="Every source in the CalCompute Research Library, with filters by element, tier and origin.">
+  <h1 class="text-3xl font-bold mb-2">Sources</h1>
+  <p class="text-sm text-gray-600 mb-3">Every source page, from <a class="underline" href="/wiki/index/">the index</a>. Missing one? <a class="underline" href="#suggest">Suggest reading</a>.</p>
+  <div class="flex flex-wrap gap-2 mb-6 text-sm">
+    {lib && <a class="chip" href={lib} rel="noopener">Drive: Library</a>}
+    {leg && <a class="chip" href={leg} rel="noopener">Drive: Legislative Sources</a>}
+    {raw.map((d) => <a class="chip" href={`/raw/${d}/`}>raw/{d}</a>)}
+  </div>
+  <h2 class="text-xl font-bold mb-3">Sources</h2>
+  <FilterTable hash headers={t.headers} rows={toRows(t, 'wiki/index.md', chips)} chips={chips} />
+</Layout>

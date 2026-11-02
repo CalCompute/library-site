@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/* Tokens and type from ap0110-systems.github.io (globals.css). Light only. */
+@font-face { font-family: 'Kunst Grotesk'; src: url('/fonts/Kunst%20Grotesk%20Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Kunst Grotesk'; src: url('/fonts/Kunst%20Grotesk%20Medium.woff2') format('woff2'); font-weight: 500 700; font-display: swap; }
+
+@theme {
+  --color-ap-cyan: #00b0ff;
+  --color-ap-red: #E4002B;
+  --color-ap-orange: #FF4F00;
+  --color-ap-yellow: #E2B46C;
+  --color-ap-green: #47B332;
+  --color-ap-blue: #0032A0;
+  --color-ap-violet: #7e1dfb;
+  --font-sans: 'Kunst Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  /* UC palette, from the CalCompute public site's tokens.css */
+  --color-uc-blue: #1295d8;
+  --color-uc-blue-dark: #005581;
+  --color-uc-blue-light: #bde3f6;
+  --color-uc-blue-light-2: #72cdf4;
+  --color-uc-navy: #002033;
+  --color-uc-gold: #ffb511;
+  --color-uc-gold-dark: #ff6e1b;
+  --color-uc-teal: #00778b;
+  --color-uc-pink: #e44c9a;
+  --color-uc-border: #dbd5cd;
+}
+
+html { scroll-padding-top: 5rem; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  font-family: var(--font-sans);
+  color: #111;
+  background-color: #fafafa;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.07) 1px, transparent 1px);
+  background-size: 16px 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Article prose (ap0110) */
+.article-prose { color: #1f2937; line-height: 1.75; font-size: 1rem; overflow-wrap: anywhere; }
+.article-prose h1 { font-size: 1.9rem; font-weight: 700; color: #111827; margin: 0 0 1rem; }
+.article-prose h2 { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 2.25rem 0 0.9rem; }
+.article-prose h3 { font-size: 1.2rem; font-weight: 600; color: #111827; margin: 1.75rem 0 0.6rem; }
+.article-prose h4 { font-size: 1.05rem; font-weight: 600; color: #374151; margin: 1.25rem 0 0.5rem; }
+.article-prose p { margin-bottom: 1.1rem; }
+.article-prose ul, .article-prose ol { margin-bottom: 1.1rem; padding-left: 1.5rem; }
+.article-prose ul { list-style: disc; }
+.article-prose ol { list-style: decimal; }
+.article-prose li { margin-bottom: 0.3rem; }
+.article-prose a, .cell a, .md a { color: #005581; text-decoration: underline; text-underline-offset: 2px; }
+.article-prose a:hover, .cell a:hover, .md a:hover { color: #1295d8; }
+/* A button inside prose keeps its own colours (About's Suggest reading). */
+.article-prose a.btn { text-decoration: none; color: #005581; }
+.article-prose a.btn-primary, .article-prose a.btn-primary:hover { color: white; }
+.article-prose strong { font-weight: 600; color: #111827; }
+.article-prose em { font-style: italic; }
+.article-prose code, .cell code, .md code { font-family: var(--font-mono); font-size: 0.85em; background: #f3f4f6; padding: 0.1em 0.3em; border-radius: 0.25rem; }
+.article-prose pre { background: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1.1rem; font-size: 0.85rem; }
+.article-prose pre code { background: none; padding: 0; color: inherit; }
+.article-prose blockquote { border-left: 3px solid #d1d5db; padding-left: 1.1rem; margin: 1.25rem 0; color: #4b5563; }
+.article-prose hr { border: none; border-top: 1px solid #e5e7eb; margin: 2rem 0; }
+.article-prose table { display: block; overflow-x: auto; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.9rem; line-height: 1.5; }
+.article-prose th, .article-prose td { text-align: left; padding: 0.5rem 0.75rem; vertical-align: top; min-width: 7rem; }
+.article-prose thead th { font-weight: 600; border-bottom: 2px solid #e5e7eb; background: #fafafa; position: sticky; top: 0; }
+.article-prose tbody td { border-bottom: 1px solid #eef0f3; }
+
+/* Flags (⚠️ / 🔍 / 💡 blockquotes), classed by remark-wiki.mjs */
+.article-prose blockquote.callout { border-radius: 0 0.5rem 0.5rem 0; padding: 0.75rem 1rem; color: #1f2937; }
+.article-prose blockquote.callout p { margin-bottom: 0; }
+.callout-warning { border-left-color: #FF4F00 !important; background: rgba(255,79,0,0.06); }
+.callout-gap { border-left-color: #00b0ff !important; background: rgba(0,176,255,0.06); }
+.callout-connection { border-left-color: #7e1dfb !important; background: rgba(126,29,251,0.05); }
+
+/* A link to a file outside the mirror (bin/, setup.sh): shown, never dropped. */
+.missing-link { text-decoration: underline dotted #9ca3af; text-underline-offset: 2px; cursor: help; }
+
+/* Statute subdivisions with ids (remark-wiki.mjs) */
+.statute-anchor:target { background: rgba(18,149,216,0.12); outline: 4px solid rgba(18,149,216,0.12); border-radius: 2px; }
+
+/* Dashboard tables */
+.dtable { width: 100%; border-collapse: collapse; font-size: 0.875rem; line-height: 1.45; }
+.dtable th { text-align: left; font-weight: 600; padding: 0.5rem 0.6rem; border-bottom: 2px solid #e5e7eb; background: #fafafa; }
+.dtable td { padding: 0.5rem 0.6rem; border-bottom: 1px solid #eef0f3; vertical-align: top; }
+.dtable tr:hover td { background: rgba(0,0,0,0.015); }
+.md ul { list-style: disc; padding-left: 1.25rem; }
+.md li { margin-bottom: 0.25rem; }
+
+.chip { border: 1px solid #e5e7eb; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; background: white; color: #4b5563; }
+.chip[aria-pressed="true"] { background: #eaf6fc; color: #002033; border-color: #72cdf4; }
+.chip[aria-pressed="false"] { opacity: 0.55; }
+.card { background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; }
+/* Marking rows done (DoneBar.astro): struck through, never hidden. */
+[data-done] .done-box + .cell { text-decoration: line-through; color: #6b7280; }
+.done-badge { display: none; margin-left: 0.4rem; font-size: 0.7rem; border-radius: 999px; padding: 0.05rem 0.45rem; background: #e6f4ea; color: #1e6b35; }
+[data-done="reported"] .done-badge { display: inline; }
+.done-ev { display: block; width: 100%; max-width: 40rem; margin-top: 0.35rem; border: 1px solid #d1d5db; border-radius: 0.375rem; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+.done-ev[hidden] { display: none; }
+/* A linked table row (#row-id) stands out, and clears the sticky header. */
+tr:target { background: #fff4d6; }
+tr[id] { scroll-margin-top: 5rem; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; border: 1px solid #005581; color: #005581; background: white; }
+.btn:hover { background: #bde3f6; }
+.btn-primary { background: #005581; color: white; }
+.btn-primary:hover { background: #1295d8; border-color: #1295d8; }
+
+/* The "How it works" link beside a page's intro: an info icon button (user, Oct. 29, 2026). */
+.info-link { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; color: #6b7280; vertical-align: middle; }
+.info-link:hover, .info-link:focus-visible { color: #1295d8; background: #eaf6fc; }

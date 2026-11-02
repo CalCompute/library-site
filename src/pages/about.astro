@@ -1,0 +1,34 @@
+---
+// What the library is, who keeps it, and how to take part.
+import Layout from '../layouts/Layout.astro';
+import TeamRow from '../components/TeamRow.astro';
+import { load, folderUrl } from '../lib/load.js';
+const m = await load();
+const drive = folderUrl(m, 'CalCompute Library');
+const sources = m.pages.filter((p) => p.rel.startsWith('wiki/sources/')).length;
+---
+<Layout title="About">
+  <article class="article-prose max-w-3xl">
+    <h1>About the library</h1>
+    <p class="not-prose rounded-md border border-uc-blue/30 bg-[#eaf6fc] px-4 py-3 text-sm text-uc-navy">This library is a tool to navigate and explore the research. An AI agent keeps its pages and links current. The consortium does not use AI to write the CalCompute Framework Report.</p>
+    <p>California's Government Code section 11546.8, added by SB 53 in 2025, asks a consortium to send the Legislature a framework for CalCompute, a public cloud computing cluster, by January 1, 2027. The framework has seven elements, from a landscape analysis to the use of the public sector workforce.</p>
+    <p>This library collects the public documents behind that work: {sources} sources so far, each with a citation, what it says in its own words, and the elements it is about. It reports what the sources say. It does not say what the Report will recommend, and it is not a position of the consortium.</p>
+
+    <h2>Take part</h2>
+    <p>The library grows from suggestions. If you know a report, a dataset, a law or a study that belongs here, or you have a question the sources could answer, send it in. A consortium member reads every suggestion and decides. The <a href="/wiki/analyses/suggestions/">Suggestions</a> page shows what came in and what happened to it. It never shows who sent it.</p>
+    <p><a class="btn btn-primary not-prose" href="#suggest">Suggest reading</a></p>
+    <p>You can also write to <a href="mailto:team@californiacompute.org?subject=Suggested%20reading">team@californiacompute.org</a> with the subject "Suggested reading", or join the conversation on <a href="https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A" target="_blank" rel="noopener">Slack</a>.</p>
+
+    <h2>Where everything is</h2>
+    <ul>
+      <li><a href="/library/">Sources</a>: every source, with filters by element, tier and origin.</li>
+      <li><a href="/wiki/overview/">Overview</a> and the <a href="/statute/">statute</a>.</li>
+      <li>Original documents: government documents and open-licensed files are in <a href="/raw/">raw/</a>{drive && <> and the public <a href={drive} target="_blank" rel="noopener">Google Drive</a></>}. Other sources link to their publisher.</li>
+      <li>The files: <a href="https://github.com/CalCompute/library-wiki" target="_blank" rel="noopener">CalCompute/library-wiki</a> (the library) and <a href="https://github.com/CalCompute/library-site" target="_blank" rel="noopener">CalCompute/library-site</a> (this site). <a href="/how-it-works/">How it works</a> explains how they fit.</li>
+    </ul>
+
+    <h2>The team</h2>
+    <p>The UC CalCompute Coalition keeps this library. This is the team that <a href="https://californiacompute.org" target="_blank" rel="noopener">californiacompute.org</a> lists: the consortium, supporting researchers and advisors, the operations team, government advocates, and legislative champions.</p>
+  </article>
+  <div class="mt-4"><TeamRow m={m} /></div>
+</Layout>

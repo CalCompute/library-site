@@ -1,0 +1,54 @@
+---
+// Right-rail "On this page" TOC with scrollspy, shared by /wiki/[slug] and /docs/[slug].
+// Pass `toc` = render(entry).headings filtered to h2/h3. Anchor offset under the fixed
+// header comes from html's scroll-padding-top in globals.css.
+const { toc = [] } = Astro.props;
+---
+{toc.length > 1 && (
+  <aside class="hidden xl:block w-52 shrink-0">
+    <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
+      <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">On this page</div>
+      <ul class="text-sm space-y-1.5 border-l border-gray-200">
+        {toc.map((h) => (
+          <li>
+            <a
+              href={`#${h.slug}`}
+              class={`toc-link block -ml-px border-l border-transparent py-0.5 leading-snug text-gray-500 hover:text-gray-900 transition-colors ${h.depth === 3 ? 'pl-6' : 'pl-3'}`}
+            >{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </aside>
+)}
+
+<style>
+  .toc-link.active {
+    border-color: var(--color-ap-cyan, #00b0ff);
+    color: var(--color-ap-cyan, #00b0ff);
+  }
+</style>
+
+<script>
+  // Scrollspy: the active section is the LAST heading above the reading line
+  // (not IntersectionObserver — short final sections never enter its band).
+  const pairs = [...document.querySelectorAll('.toc-link')]
+    .map((link) => [link, document.getElementById(decodeURIComponent(link.getAttribute('href').slice(1)))])
+    .filter(([, h]) => h);
+  if (pairs.length) {
+    let current = null;
+    const update = () => {
+      let active = pairs[0][0];
+      for (const [link, h] of pairs) {
+        if (h.getBoundingClientRect().top <= 100) active = link;
+      }
+      if (active !== current) {
+        current?.classList.remove('active');
+        active.classList.add('active');
+        current = active;
+      }
+    };
+    addEventListener('scroll', update, { passive: true });
+    update();
+  }
+</script>

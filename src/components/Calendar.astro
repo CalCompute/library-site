@@ -1,0 +1,29 @@
+---
+// The consortium's element calls and community sync (activity.json) this week, each event with its time and
+// status. No links, hosts or attendees.
+import { sundayOf, days7, dayName, span } from '../lib/calendar.js';
+const { cal } = Astro.props;
+const on = (d) => cal.items.filter((e) => e.date === d);
+const days = days7(sundayOf(cal.today));
+const STATUS = { held: 'Held', today: 'Today', upcoming: 'Upcoming', cancelled: 'Cancelled' };
+---
+<div class="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-xl overflow-hidden text-sm max-md:grid-cols-1">
+  {days.map((d) => (
+    <div class={`p-2 min-h-24 ${d === cal.today ? 'bg-[#eaf6fc]' : 'bg-white'}`}>
+      <div class={`text-xs mb-1 ${d === cal.today ? 'font-bold text-uc-blue-dark' : 'text-gray-500'}`}>{dayName(d)}</div>
+      {on(d).map((e) => (
+        <div class={`cal-ev mb-1.5 rounded-md border px-2 py-1 ${e.status === 'cancelled' ? 'line-through opacity-60' : ''}`} data-status={e.status}>
+          <div class="font-medium leading-tight">{e.title}</div>
+          <div class="text-xs text-gray-500">{span(e.start, e.end)} · {STATUS[e.status]}</div>
+        </div>
+      ))}
+    </div>
+  ))}
+</div>
+
+<style>
+  .cal-ev[data-status="held"] { background: #f3f4f6; border-color: #e5e7eb; }
+  .cal-ev[data-status="today"] { background: #fff3c4; border-color: #f5c400; }
+  .cal-ev[data-status="upcoming"] { background: #eaf6fc; border-color: #9fd8f2; }
+  .cal-ev[data-status="cancelled"] { background: white; border-color: #e5e7eb; }
+</style>

@@ -1,0 +1,77 @@
+---
+// A table with chip filters and a text filter. Vanilla JS, no framework.
+// headers: string[]; rows: [{ cells: {header: html}, values: {header: string[]} }];
+// chips: headers to offer chips for (values come from row.values[header]).
+// hash: keep the chips and the text filter in the URL hash, so a link opens the same view.
+const { headers, rows, chips = [], id = 'ft' + Math.random().toString(36).slice(2, 8), caption, hash = false } = Astro.props;
+const chipValues = Object.fromEntries(chips.map((h) => {
+  const counts = new Map();
+  for (const r of rows) for (const v of r.values?.[h] ?? []) counts.set(v, (counts.get(v) || 0) + 1);
+  return [h, [...counts].sort((a, b) => b[1] - a[1])];
+}));
+---
+<div class="ftable" data-ftable={id} data-hash={hash ? "1" : undefined}>
+  <div class="flex flex-wrap items-start gap-x-6 gap-y-2 mb-3">
+    <input type="search" placeholder="Filter rows" class="border border-gray-300 rounded-md px-2.5 py-1 text-sm w-56" data-text />
+    {chips.map((h) => chipValues[h].length > 1 && (
+      <div class="flex flex-wrap items-center gap-1">
+        <span class="text-xs text-gray-500 mr-1">{h}</span>
+        {chipValues[h].map(([v, n]) => (
+          <button class="chip" aria-pressed="false" data-col={h} data-val={v}>{v} <span class="opacity-60">{n}</span></button>
+        ))}
+      </div>
+    ))}
+  </div>
+  <p class="text-xs text-gray-500 mb-2"><span data-count>{rows.length}</span> of {rows.length} rows{caption && <> · {caption}</>}</p>
+  <div class="overflow-x-auto card">
+    <table class="dtable">
+      <thead><tr>{headers.map((h) => <th>{h}</th>)}</tr></thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr id={r.id} data-values={JSON.stringify(r.values ?? {})}>
+            {headers.map((h) => <td class="cell" set:html={r.cells[h] ?? ''} />)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  import { parseHash, toHash } from '../lib/hash.js';
+  for (const root of document.querySelectorAll<HTMLElement>('[data-ftable]')) {
+    const rows = [...root.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+    const vals = rows.map((r) => JSON.parse(r.dataset.values || '{}'));
+    const text = root.querySelector<HTMLInputElement>('[data-text]')!;
+    const count = root.querySelector('[data-count]')!;
+    const apply = (write = true) => {
+      const on: Record<string, Set<string>> = {};
+      for (const b of root.querySelectorAll<HTMLElement>('button[data-col][aria-pressed="true"]')) (on[b.dataset.col!] ??= new Set()).add(b.dataset.val!);
+      const q = text.value.trim().toLowerCase();
+      let n = 0;
+      rows.forEach((r, i) => {
+        const ok = Object.entries(on).every(([c, s]) => (vals[i][c] || []).some((v: string) => s.has(v))) && (!q || r.textContent!.toLowerCase().includes(q));
+        r.hidden = !ok; if (ok) n++;
+      });
+      count.textContent = String(n);
+      if (write && root.dataset.hash) {
+        const state: Record<string, string[]> = Object.fromEntries(Object.entries(on).map(([c, s]) => [c, [...s]]));
+        if (text.value.trim()) state.q = [text.value.trim()];
+        history.replaceState(null, '', location.pathname + location.search + (Object.keys(state).length ? '#' + toHash(state) : ''));
+      }
+    };
+    root.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('button[data-col]');
+      if (!b) return;
+      b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'));
+      apply();
+    });
+    text.addEventListener('input', () => apply());
+    if (root.dataset.hash && location.hash.includes('=')) { // a saved filter: press its chips, fill its text
+      const want = parseHash(location.hash);
+      for (const b of root.querySelectorAll<HTMLElement>('button[data-col]')) if (want[b.dataset.col!]?.includes(b.dataset.val!)) b.setAttribute('aria-pressed', 'true');
+      if (want.q) text.value = want.q[0];
+      apply(false);
+    }
+  }
+</script>

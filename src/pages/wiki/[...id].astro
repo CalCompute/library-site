@@ -1,0 +1,20 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Page from '../../components/Page.astro';
+import Folder from '../../components/Folder.astro';
+import { load } from '../../lib/load.js';
+import { dirs, idOf } from '../../lib/wiki.js';
+
+export async function getStaticPaths() {
+  const m = await load();
+  const pages = m.pages.filter((p) => p.tree === 'wiki').map((p) => ({ params: { id: p.route.slice('/wiki/'.length, -1) }, props: { rel: p.rel } }));
+  const folders = [...dirs].filter((d) => d.split('/')[0] === 'wiki').map((d) => ({ params: { id: d === 'wiki' ? undefined : idOf(d) }, props: { dir: d } }));
+  return [...pages, ...folders];
+}
+const m = await load();
+const { rel, dir } = Astro.props;
+const page = rel && m.byRel.get(rel);
+---
+<Layout title={page ? page.title : dir + '/'}>
+  {page ? <Page page={page} m={m} /> : <Folder dir={dir} m={m} />}
+</Layout>

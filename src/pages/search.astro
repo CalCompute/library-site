@@ -1,0 +1,325 @@
+---
+// Full-page search over the Pagefind index (built by `npm run build`). State lives in the query
+// string, so a search is a link: /search/?q=cost&kind=source&element=D&sort=newest.
+// What each page contributes (kind, element, origin, format, tag, dates, image) is set in Page.astro.
+import Layout from '../layouts/Layout.astro';
+import { load } from '../lib/load.js';
+const m = await load();
+// Facet value labels: element letters get their hub names; the rest read as written.
+const labels = {
+  element: Object.fromEntries(m.pages.filter((p) => p.rel.startsWith('wiki/elements/') && p.data.element).map((p) => [p.data.element, p.title])),
+  section: { wiki: 'Library pages', raw: 'Originals (raw/)' },
+  format: { pdf: 'PDF original', html: 'Saved web page', json: 'JSON original', drive: 'In the Drive', online: 'Online', markdown: 'Markdown only' },
+};
+---
+<Layout title="Search" wide>
+  <form role="search" method="get" action="/search/" id="sf" class="pt-2">
+    <label for="sq" class="block text-sm font-medium text-gray-700 mb-1">Search the library</label>
+    <div class="flex gap-2">
+      <input id="sq" name="q" type="search" autocomplete="on" spellcheck="false" placeholder="Sources, publishers, topics, statute…"
+        class="min-w-0 flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-lg focus:outline-none focus:ring-2 focus:ring-uc-blue" />
+      <button class="btn btn-primary">Search</button>
+    </div>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
+      <label>Sort
+        <select id="ss" name="sort" class="ml-1 border border-gray-300 rounded-md px-1.5 py-0.5 bg-white">
+          <option value="">Relevance</option><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="title">Title A–Z</option>
+        </select>
+      </label>
+      <span class="text-xs text-gray-500">Narrow in the box: <code>kind:source</code> <code>element:D</code> <code>origin:call</code> <code>format:pdf</code> <code>tag:member</code>. Quote the whole query for an exact phrase.</span>
+    </div>
+  </form>
+
+  <div class="mt-6 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
+    <details id="fw" open class="mb-6 lg:mb-0">
+      <summary class="lg:hidden cursor-pointer text-sm font-medium text-gray-700 mb-3">Filters <span data-nf></span></summary>
+      <div id="facets" class="facets" data-labels={JSON.stringify(labels)}></div>
+    </details>
+    <section aria-live="polite" aria-busy="false" id="out" class="min-w-0">
+      <p id="status" class="text-sm text-gray-600">Results need JavaScript. Every page is still reachable from the <a class="underline" href="/wiki/index/">wiki index</a>.</p>
+      <div id="notice" class="text-sm"></div>
+      <ol id="pinned" class="space-y-2 mt-2" aria-label="Exact title matches"></ol>
+      <ol id="results" class="divide-y divide-gray-100"></ol>
+      <button id="more" type="button" class="btn mt-4" hidden>Load more</button>
+    </section>
+  </div>
+</Layout>
+
+<style is:global>
+  .facets .chip[aria-pressed="false"] { opacity: 1; }
+  .facets .chip:hover { border-color: #72cdf4; }
+  .facets .chip:focus-visible, #results a:focus-visible { outline: 2px solid #1295d8; outline-offset: 2px; }
+  #results mark, #pinned mark, #notice mark { background: #ffe9a6; color: inherit; padding: 0 .05em; }
+</style>
+
+<script>
+  import { FACETS, parseQuery, similar } from '../lib/search.js';
+
+  type Sel = Record<string, string[]>;
+  type Counts = Record<string, Record<string, number>>;
+  const PAGE = 20;
+  const SORTS: Record<string, object> = { newest: { date: 'desc' }, oldest: { date: 'asc' }, title: { title: 'asc' } };
+  const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+  const form = $<HTMLFormElement>('sf'), qi = $<HTMLInputElement>('sq'), si = $<HTMLSelectElement>('ss');
+  const pinEl = $('pinned'), facetsEl = $('facets'), statusEl = $('status'), noticeEl = $('notice'), list = $('results'), more = $('more'), out = $('out');
+  const LABELS: Record<string, Record<string, string>> = JSON.parse(facetsEl.dataset.labels!);
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const label = (k: string, v: string) => LABELS[k]?.[v] ?? v;
+
+  let pf: any, known: Counts = {}, results: any[] = [], shown = 0, seq = 0, open = new Set<string>();
+  let last: [Counts, Sel] = [{}, {}];
+  let state = readUrl();
+
+  function readUrl() {
+    const u = new URLSearchParams(location.search), sel: Sel = {};
+    for (const [k] of FACETS) { const v = u.getAll(k).filter(Boolean); if (v.length) sel[k] = v; }
+    return { q: u.get('q') ?? '', sort: u.get('sort') ?? '', sel };
+  }
+  function writeUrl(push: boolean) {
+    const u = new URLSearchParams();
+    if (state.q) u.set('q', state.q);
+    for (const [k, vs] of Object.entries(state.sel)) for (const v of vs) u.append(k, v);
+    if (state.sort) u.set('sort', state.sort);
+    const qs = u.toString(), url = location.pathname + (qs ? `?${qs}` : '');
+    if (url !== location.pathname + location.search) history[push ? 'pushState' : 'replaceState'](null, '', url);
+  }
+  // Operator values match facet values without regard to case (kind:Zulip finds "Zulip copy" only if typed in full).
+  const resolve = (k: string, v: string) => Object.keys(known[k] ?? {}).find((x) => x.toLowerCase() === v.toLowerCase()) ?? v;
+  const merged = (ops: Sel): Sel => {
+    const sel: Sel = structuredClone(state.sel);
+    for (const [k, vs] of Object.entries(ops)) for (const v of vs.map((x) => resolve(k, x))) if (!(sel[k] ??= []).includes(v)) sel[k].push(v);
+    return sel;
+  };
+  // Move operators typed in the box into the filters, so the URL and the chips show them.
+  function absorbOperators() {
+    const { term, filters } = parseQuery(state.q);
+    if (!Object.keys(filters).length) return;
+    state = { ...state, q: term, sel: merged(filters) };
+    qi.value = term;
+  }
+  // Within a facet the values OR; facets AND. With no filter, match every page so browsing works without a term.
+  const pfFilters = (sel: Sel) => {
+    const f: Record<string, { any: string[] }> = {};
+    for (const [k, vs] of Object.entries(sel)) if (vs.length) f[k] = { any: vs };
+    return Object.keys(f).length ? f : { section: { any: ['wiki', 'raw'] } };
+  };
+  const optsFor = (sel: Sel) => ({ filters: pfFilters(sel), ...(SORTS[state.sort] ? { sort: SORTS[state.sort] } : {}) });
+
+  function renderFacets(counts: Counts, sel: Sel) {
+    last = [counts, sel];
+    const n = Object.values(sel).flat().length;
+    document.querySelector('[data-nf]')!.textContent = n ? `(${n})` : '';
+    facetsEl.innerHTML = FACETS.map(([k, title]) => {
+      const vals = Object.entries(counts[k] ?? {}).filter(([v, c]) => c > 0 || sel[k]?.includes(v)).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      if (!vals.length) return '';
+      const cut = open.has(k) ? vals.length : 8;
+      const chips = vals.map(([v, c], i) => `<button type="button" class="chip" ${i >= cut && !sel[k]?.includes(v) ? 'hidden' : ''} aria-pressed="${!!sel[k]?.includes(v)}" data-col="${esc(k)}" data-val="${esc(v)}">${esc(label(k, v))} <span class="opacity-60">${c}</span></button>`).join('');
+      const fold = vals.length > 8 ? `<button type="button" class="text-xs text-uc-blue-dark underline" data-fold="${esc(k)}">${open.has(k) ? 'Fewer' : `${vals.length - 8} more`}</button>` : '';
+      return `<div class="mb-5" role="group" aria-label="${esc(title)}"><h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">${esc(title)}</h2><div class="flex flex-wrap gap-1 items-center">${chips}${fold}</div></div>`;
+    }).join('') + (n ? '<button type="button" class="text-sm text-uc-blue-dark underline" data-clear>Clear all filters</button>' : '');
+  }
+
+  // Where a file lives outside the repo (load.js systemOf): its app's mark, by the kind label and as a fallback thumbnail.
+  const APPS: Record<string, string> = { drive: 'google-drive.svg' };
+  const APP_NAMES: Record<string, string> = { drive: 'Google Drive' };
+  const appMark = (system: string) => APPS[system] ? `<img src="/images/apps/${APPS[system]}" alt="${APP_NAMES[system]}" title="${APP_NAMES[system]}" class="inline-block h-3.5 w-auto -mt-0.5 mr-1.5 align-middle">` : '';
+  const glyph = (m: any, kind: string) => {
+    if (m.thumb) return /\/images\/people\//.test(m.thumb)
+      ? `<img src="${esc(m.thumb)}" alt="" loading="lazy" class="h-12 w-12 rounded-full object-cover border border-gray-200">`
+      : `<img src="${esc(m.thumb)}" alt="" loading="lazy" class="h-12 w-12 rounded-lg object-contain bg-white border border-gray-200 p-1">`;
+    let av: { name: string; src: string }[] = []; try { av = JSON.parse(m.avatars ?? '[]'); } catch {}
+    if (av.length) return `<span class="relative block h-12 w-12" title="${esc(av.map((a) => a.name).join(', '))}">${av.map((a, i) =>
+      `<img src="${esc(a.src)}" alt="" loading="lazy" class="absolute rounded-full object-cover border-2 border-white ${i ? 'h-6 w-6' : 'h-10 w-10'}" style="${i ? `right:${(i - 1) * 14}px;bottom:0;z-index:${3 - i}` : 'left:0;top:0;z-index:3'}">`).join('')}</span>`;
+    const app = APPS[m.system as string];
+    if (app) return `<span class="h-12 w-12 rounded-lg border border-gray-200 bg-white grid place-items-center"><img src="/images/apps/${app}" alt="" class="h-6 w-6 object-contain"></span>`;
+    const ext = m.original?.match(/\.(\w+)\/?$/)?.[1]?.toUpperCase();
+    const text = ext ?? (kind || '?').slice(0, 1).toUpperCase();
+    return `<span class="h-12 w-12 rounded-lg grid place-items-center text-xs font-bold text-white" style="background:${esc(m.color || '#7c7e7f')}">${esc(text)}</span>`;
+  };
+  // Browsing (no term) still gets ?highlight= with nothing after it from Pagefind.
+  const clean = (u: string) => u.replace(/\?highlight=(?=#|$)/, '');
+  // Where the evidence came from (Page.astro writes meta.prov from lib/provenance.js), in reading order.
+  const PROV: [string, string][] = [
+    ['publisher', 'Publisher'], ['published', 'Published'], ['license', 'License'], ['tier', 'Tier'],
+  ];
+  const provHtml = (p: any) => {
+    const items = PROV.filter(([k]) => p[k]).map(([k, l]) => [l, p[k]]);
+    return items.length ? `<dl class="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-700">${items.map(([l, v]) => `<div class="flex gap-1"><dt class="text-gray-500">${esc(l)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : '';
+  };
+  const sourceLink = (url: string) => {
+    let host = ''; try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+    const what = /drive\.google|docs\.google/.test(host) ? 'Open in the Drive' : `Source: ${host}`;
+    return `<a class="underline" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(url)}">${esc(what)} ↗</a>`;
+  };
+  const PIN = 'border-l-4 border-uc-blue bg-[#eaf6fc] pl-3 pr-2 rounded-r-lg';
+  const badge = (outside: boolean) => `<span class="inline-block mb-1 text-[.7rem] font-semibold uppercase tracking-wide text-uc-blue-dark">Exact title${outside ? ' · outside current filters' : ''}</span>`;
+  function card(d: any, pin?: { outside: boolean }) {
+    const m = d.meta ?? {}, f = d.filters ?? {};
+    let prov: any = {}; try { prov = JSON.parse(m.prov ?? '{}'); } catch {}
+    const kind = m.kind ?? '', origin = f.origin?.[0], els: string[] = f.element ?? [];
+    const eyebrow = [kind, origin && origin !== kind ? origin : '', m.date].filter(Boolean).map(esc).join(' · ');
+    const subs = m.drive ? [] : (d.sub_results ?? []).filter((s: any) => s.url.includes('#') && s.title !== m.title).slice(0, 2);
+    const ext = m.original?.match(/\.(\w+)\/?$/)?.[1]?.toUpperCase();
+    const actions = [
+      m.original && `<a class="underline" href="${esc(m.original)}">Original ${esc(ext ?? 'file')}</a>`,
+      prov.url && sourceLink(prov.url),
+    ].filter(Boolean).join('');
+    return `<li class="py-4 flex gap-4 ${pin ? PIN : ''}">
+      <div class="shrink-0">${glyph(m, kind)}</div>
+      <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">
+        ${pin ? badge(pin.outside) : ''}
+        <div class="text-xs uppercase tracking-wide text-gray-500">${appMark(m.system)}${eyebrow}</div>
+        <a href="${esc(m.drive ?? clean(d.url))}"${m.drive ? ' target="_blank" rel="noopener"' : ''} class="block text-lg font-semibold text-uc-blue-dark hover:underline leading-snug" data-hit>${esc(m.title || d.url)}</a>
+        <div class="text-xs text-gray-500 truncate">${esc(m.path ?? '')}</div>
+        <p class="text-sm text-gray-700 mt-1">${d.excerpt}</p>
+        ${provHtml(prov)}
+        ${subs.length ? `<ul class="mt-1.5 space-y-0.5 text-sm border-l-2 border-gray-100 pl-3">${subs.map((s: any) => `<li><a class="text-uc-blue-dark hover:underline" href="${esc(clean(s.url))}">${esc(s.title)}</a> <span class="text-gray-500">${s.excerpt}</span></li>`).join('')}</ul>` : ''}
+        ${els.length || actions ? `<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">${els.map((L) => `<a class="chip" href="?element=${esc(L)}" title="${esc(label('element', L))}">${esc(L)}</a>`).join('')}${actions}</div>` : ''}
+      </div>
+    </li>`;
+  }
+
+  // An exact title the index could not hand back (rare): a card from the graph's own data.
+  const nodeCard = (n: any, outside: boolean) => `<li class="py-4 flex gap-4 ${PIN}">
+      <div class="shrink-0">${glyph({ thumb: n.img, system: n.system }, n.type)}</div>
+      <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">${badge(outside)}
+        <div class="text-xs uppercase tracking-wide text-gray-500">${appMark(n.system)}${esc(n.type)}</div>
+        <a href="${esc(n.href ?? n.id)}"${/^https?:/.test(n.href ?? '') ? ' target="_blank" rel="noopener"' : ''} class="block text-lg font-semibold text-uc-blue-dark hover:underline leading-snug" data-hit>${esc(n.label)}</a>
+        <div class="text-xs text-gray-500 truncate">${esc(n.desc ?? '')}</div>
+      </div></li>`;
+  const pathOf = (u: string) => { try { return new URL(u, location.origin).pathname; } catch { return u; } };
+
+  async function showMore(my: number) {
+    const slice = results.slice(shown, shown + PAGE);
+    const data = await Promise.all(slice.map((r) => r.data()));
+    if (my !== seq) return;
+    list.insertAdjacentHTML('beforeend', data.map((d) => card(d)).join(''));
+    shown += slice.length;
+    more.hidden = shown >= results.length;
+    countLine();
+  }
+  let countText = () => '';
+  const countLine = () => { statusEl.textContent = countText(); };
+
+  let titles: { id: string; label: string; desc?: string; img?: string; type: string; system?: string }[] | null = null;
+  const loadTitles = async () => (titles ??= await fetch('/graph.json').then((r) => r.json()).then((g) => g.nodes.filter((n: any) => n.id.startsWith('/'))).catch(() => []));
+  async function didYouMean(term: string) {
+    await loadTitles();
+    return [...new Set(titles!.map((n) => n.label))]
+      .map((t) => [t, similar(term, t)] as const).filter(([, s]) => s > 0.5).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+  }
+
+  async function run(debounce = false) {
+    const my = ++seq;
+    const { term, filters: ops } = parseQuery(state.q);
+    const sel = merged(ops), t = term.trim() || null;
+    noticeEl.innerHTML = '';
+    if (!t && !Object.keys(sel).length && !state.sort) {
+      list.innerHTML = ''; pinEl.innerHTML = ''; more.hidden = true; results = [];
+      renderFacets(known, sel);
+      statusEl.textContent = 'Type to search every wiki and evidence page, or pick a filter to browse.';
+      return;
+    }
+    out.setAttribute('aria-busy', 'true');
+    let r = debounce ? await pf.debouncedSearch(t, optsFor(sel), 200) : await pf.search(t, optsFor(sel));
+    if (!r || my !== seq) return;
+    let shownTerm = t;
+    // No hits for several words: try the longest word alone, then suggest titles.
+    if (t && !r.results.length) {
+      const words = t.replace(/"/g, '').split(/\s+/).filter(Boolean);
+      if (words.length > 1) {
+        const w = words.sort((a, b) => b.length - a.length)[0];
+        const r2 = await pf.search(w, optsFor(sel));
+        if (my !== seq) return;
+        if (r2.results.length) { r = r2; shownTerm = w; noticeEl.innerHTML = `<p class="mb-2">No results for <b>${esc(t)}</b>. Showing results for <b>${esc(w)}</b>.</p>`; }
+      }
+      if (!r.results.length) {
+        const dym = await didYouMean(t);
+        if (my !== seq) return;
+        const browse = `<a class="underline" href="?sort=newest">browse all pages</a>`;
+        noticeEl.innerHTML = `<p class="mb-1">No results for <b>${esc(t)}</b>${Object.keys(sel).length ? ' with these filters' : ''}.</p>`
+          + (dym.length ? `<p class="mb-1">Did you mean ${dym.map((x) => `<a class="underline text-uc-blue-dark" href="?q=${encodeURIComponent(x)}">${esc(x)}</a>`).join(', ')}?</p>` : '')
+          + `<p class="text-gray-500">Try fewer or shorter words${Object.keys(sel).length ? ', clear a filter,' : ''} or ${browse}.</p>`;
+      }
+    }
+    // A few weak hits for what looks like a misspelt title: offer the close titles too, as search engines do.
+    if (t && r.results.length && r.results.length < 5 && !noticeEl.innerHTML) {
+      const dym = (await didYouMean(t)).filter((x) => x.toLowerCase() !== t.toLowerCase() && similar(t, x) > 0.7);
+      if (my !== seq) return;
+      if (dym.length) noticeEl.innerHTML = `<p class="mb-2">Did you mean ${dym.map((x) => `<a class="underline text-uc-blue-dark" href="?q=${encodeURIComponent(x)}">${esc(x)}</a>`).join(', ')}?</p>`;
+    }
+    // Counts per facet with the other facets applied, so choosing a second value in a facet still shows its count.
+    const counts: Counts = { ...r.filters };
+    for (const k of Object.keys(sel)) {
+      const rest = { ...sel }; delete rest[k];
+      const rk = await pf.search(shownTerm, optsFor(rest));
+      if (my !== seq) return;
+      counts[k] = rk.filters[k] ?? {};
+    }
+    renderFacets(counts, sel);
+    // Pages titled exactly as the query go first, marked, and are not repeated below. They show even when the
+    // filters leave them out, labelled so. Found among the top unfiltered hits by their route.
+    const want = (t ?? '').replace(/"/g, '').trim().toLowerCase();
+    const exact = want ? (await loadTitles()).filter((n) => n.label.toLowerCase() === want) : [];
+    const pinned: string[] = [], pinIds = new Set<string>();
+    if (exact.length) {
+      const routes = new Set(exact.map((n) => n.id)), inFiltered = new Set(r.results.map((x: any) => x.id));
+      const pool = Object.keys(sel).length ? (await pf.search(t, optsFor({}))).results : r.results;
+      const top = await Promise.all(pool.slice(0, 30).map(async (x: any) => [x, await x.data()] as const));
+      if (my !== seq) return;
+      const found = new Set<string>();
+      for (const [x, d] of top) {
+        const route = pathOf(d.url);
+        if (routes.has(route) && !found.has(route)) { found.add(route); pinIds.add(x.id); pinned.push(card(d, { outside: !inFiltered.has(x.id) })); }
+      }
+      for (const n of exact) if (!found.has(n.id)) pinned.push(nodeCard(n, false));
+    }
+    pinEl.innerHTML = pinned.join('');
+    results = r.results.filter((x: any) => !pinIds.has(x.id)); shown = 0; list.innerHTML = '';
+    const dated = /newest|oldest/.test(state.sort) ? ' Undated pages are left out of date order.' : '';
+    const forTerm = shownTerm ? ` for “${shownTerm}”` : '';
+    const nExact = pinned.length ? `, ${pinned.length} exact title match${pinned.length > 1 ? 'es' : ''}` : '';
+    countText = () => results.length ? `Results 1–${shown} of ${results.length}${forTerm}${nExact}.${dated}` : nExact ? `${pinned.length} exact title match${pinned.length > 1 ? 'es' : ''}${forTerm}.` : '';
+    if (results.length) await showMore(my); else { more.hidden = true; countLine(); }
+    out.setAttribute('aria-busy', 'false');
+  }
+
+  qi.addEventListener('input', () => { state = { ...state, q: qi.value }; writeUrl(false); run(true); });
+  form.addEventListener('submit', (e) => { e.preventDefault(); state = { ...state, q: qi.value }; absorbOperators(); writeUrl(true); run(); });
+  si.addEventListener('change', () => { state = { ...state, sort: si.value }; writeUrl(true); run(); });
+  more.addEventListener('click', () => showMore(seq));
+  facetsEl.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('[data-clear]')) { state = { ...state, sel: {} }; writeUrl(true); return run(); }
+    const fold = el.closest<HTMLElement>('[data-fold]');
+    if (fold) { const k = fold.dataset.fold!; open.has(k) ? open.delete(k) : open.add(k); return renderFacets(...last); }
+    const b = el.closest<HTMLElement>('[data-col]'); if (!b) return;
+    const k = b.dataset.col!, v = b.dataset.val!, sel = structuredClone(state.sel);
+    sel[k] = (sel[k] ?? []).includes(v) ? sel[k].filter((x) => x !== v) : [...(sel[k] ?? []), v];
+    if (!sel[k].length) delete sel[k];
+    state = { ...state, sel }; writeUrl(true); run();
+  });
+  addEventListener('popstate', () => { state = readUrl(); qi.value = state.q; si.value = state.sort; run(); });
+  addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(t.tagName)) { e.preventDefault(); qi.focus(); qi.select(); }
+  });
+  if (!matchMedia('(min-width: 1024px)').matches) $<HTMLDetailsElement>('fw').open = false;
+
+  (async () => {
+    qi.value = state.q; si.value = state.sort;
+    statusEl.textContent = 'Loading the search index…';
+    try {
+      const url = '/pagefind/pagefind.js';
+      pf = await import(/* @vite-ignore */ url);
+      await pf.options({ excerptLength: 40, highlightParam: 'highlight' });
+      known = await pf.filters();
+    } catch {
+      statusEl.textContent = 'Search works on the built site only (npm run build, then npm run preview).';
+      return;
+    }
+    absorbOperators(); writeUrl(false);
+    if (!state.q) qi.focus();
+    run();
+  })();
+</script>

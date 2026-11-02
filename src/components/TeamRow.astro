@@ -1,0 +1,27 @@
+---
+// The people californiacompute.org lists, in two rows: the consortium, supporting researchers and advisors and the
+// operations team, untitled; then the government advocates and Legislative champions. Photo, name, institution and its mark, and the profile link. From the library-wiki
+// team pages (member: yes, group). No contact details.
+import { photoFor, logosFor, PLACEHOLDER } from '../lib/brand.js';
+const { m } = Astro.props;
+---
+<div class="space-y-5">
+  {m.groups.map(([label, list]) => (
+    <div>
+      {label && <h3 class="text-sm font-medium text-gray-500 mb-2">{label}</h3>}
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-3">
+        {list.map((p) => (
+          <div class="card p-3 flex items-center gap-3">
+            <img src={p.photo ?? photoFor(p.name) ?? PLACEHOLDER} alt="" width="48" height="48" loading="lazy" class="h-12 w-12 rounded-full object-cover border border-gray-200 shrink-0" />
+            <div class="min-w-0 text-sm">
+              <a class="font-medium text-uc-navy hover:underline" href={p.page.route}>{p.name}</a>
+              <div class="text-gray-500 truncate" title={p.position || p.institution}>{p.institution || p.position}</div>
+              {p.profile && <a class="text-xs underline text-uc-blue-dark" href={p.profile} target="_blank" rel="noopener">Profile ↗</a>}
+            </div>
+            {logosFor(p.institution).slice(0, 1).map((l) => <img src={l.src} alt={l.name} class="h-6 w-auto ml-auto shrink-0" loading="lazy" />)}
+          </div>
+        ))}
+      </div>
+    </div>
+  ))}
+</div>

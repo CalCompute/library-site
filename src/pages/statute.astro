@@ -1,0 +1,24 @@
+---
+import Icon from '../components/Icon.astro';
+import Layout from '../layouts/Layout.astro';
+import { render } from 'astro:content';
+import { load } from '../lib/load.js';
+import { STATUTE } from '../lib/remark-wiki.mjs';
+const m = await load();
+const page = m.byRel.get(STATUTE);
+const src = m.pages.find((p) => p.rel === 'wiki/sources/SB-53 Gov Code 11546.8.md');
+const { Content } = await render(page.entry);
+---
+<Layout title="Statute">
+  <h1 class="text-3xl font-bold mb-2">SB 53, Government Code § 11546.8</h1>
+  <p class="text-sm text-gray-600 mb-4"><a class="underline" href={page.route}>{STATUTE}</a>, word for word. <a class="info-link" href="/how-it-works/#statute" title="How it works" aria-label="How it works"><Icon name="info" /></a></p>
+  <div class="flex flex-wrap gap-1.5 mb-6 text-sm">
+    {[['b', '(b)'], ['c', '(c)'], ['d', '(d)'], ['e', '(e)'], ['f', '(f)'], ...'abcdefg'.split('').map((x) => [`f-2-${x}`, `(f)(2)(${x.toUpperCase()})`]), ['g', '(g)'], ['i', '(i)'], ['k', '(k)']].map(([id, label]) => <a class="chip" href={`#sec3-${id}`}>{label}</a>)}
+  </div>
+  <article class="article-prose max-w-3xl [&>h1:first-child]:hidden"><Content /></article>
+  <script>
+    for (const p of document.querySelectorAll<HTMLElement>('.statute-anchor')) {
+      const a = document.createElement('a'); a.href = '#' + p.id; a.textContent = '#'; a.className = 'ml-2 text-xs text-gray-400 no-underline'; p.append(a);
+    }
+  </script>
+</Layout>

@@ -1,0 +1,52 @@
+---
+// Suggest reading or ask a question: one email to the team mailbox from the visitor's own mail program.
+// Opens from any link to #suggest; a link with data-element="A" picks that element. Closing the form cancels it.
+const ELEMENTS = [['A', 'Landscape Analysis'], ['B', 'Cost & Funding'], ['C', 'Governance'], ['D', 'Use Parameters'], ['E', 'Workforce'], ['F', 'Partnerships'], ['G', 'Public Sector Workforce']];
+---
+<dialog id="suggest" aria-labelledby="suggest-title" class="w-[min(600px,calc(100vw-2rem))] max-h-[85vh] mt-20 mx-auto rounded-xl p-5 backdrop:bg-black/30">
+  <form method="dialog" class="space-y-3 text-sm">
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 id="suggest-title" class="text-lg font-bold">Suggest reading</h2>
+      <button type="button" class="chip" data-cancel>Cancel</button>
+    </div>
+    <p class="text-gray-600">Know a report, dataset or law that belongs here? Have a question the sources could answer? Send it to the consortium. A member reads every suggestion, and the <a class="underline" href="/wiki/analyses/suggestions/">Suggestions</a> page shows what happened to it. Your name is never shown.</p>
+    <label class="block"><span class="font-medium">Link</span> <span class="text-gray-500">(optional)</span>
+      <input name="url" type="url" placeholder="https://" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+    </label>
+    <label class="block"><span class="font-medium">What it is, or your question</span>
+      <textarea name="what" required rows="4" class="mt-1 block w-full border border-gray-300 rounded-md p-2"
+        placeholder="For example: a state report on data center costs, which may help element B."></textarea>
+    </label>
+    <label class="block"><span class="font-medium">Element</span>
+      <select name="element" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+        <option value="">Not sure</option>
+        {ELEMENTS.map(([L, t]) => <option value={`${L} - ${t}`}>{L} - {t}</option>)}
+      </select>
+    </label>
+    <p class="text-xs text-gray-500">Send opens your own email program with the message filled in, to team@californiacompute.org. Nothing is sent until you send it there.</p>
+    <button type="button" class="btn btn-primary py-1" data-open>Send</button>
+  </form>
+</dialog>
+
+<script>
+  import { suggestMail } from '../lib/mailto.js';
+  const dlg = document.getElementById('suggest') as HTMLDialogElement;
+  const form = dlg.querySelector('form')!;
+  const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
+  dlg.querySelector('[data-open]')!.addEventListener('click', () => {
+    if (!form.reportValidity()) return;
+    location.href = suggestMail({ url: field('url').value, what: field('what').value, element: field('element').value }).href;
+    dlg.close();
+  });
+  document.addEventListener('click', (e) => {
+    const a = (e.target as HTMLElement | null)?.closest?.<HTMLElement>('a[href="#suggest"]');
+    if (!a) return;
+    e.preventDefault();
+    const L = a.dataset.element;
+    if (L) field('element').value = [...(field('element') as unknown as HTMLSelectElement).options].find((o) => o.value.startsWith(L + ' '))?.value ?? '';
+    dlg.showModal(); field('url').focus();
+  });
+  dlg.addEventListener('close', () => form.reset());
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  dlg.querySelector('[data-cancel]')!.addEventListener('click', () => dlg.close());
+</script>

@@ -1,0 +1,123 @@
+---
+// One wiki or raw page: hero (type, title, frontmatter, local graph), rails, the rendered
+// markdown, and a footer naming the source file. Element reading lists end with a Suggest reading button.
+import { render } from 'astro:content';
+import GraphView, { COLORS } from './WikiGraph.jsx';
+import WikiNav from './WikiNav.astro';
+import WikiToc from './WikiToc.astro';
+import { localGraph, linkList } from '../lib/load.js';
+import { files, day, routeOf, RAW_FOLDERS, pageDate, plain, driveHref, rehosted } from '../lib/wiki.js';
+import { photoFor } from '../lib/brand.js';
+import { provenance } from '../lib/provenance.js';
+
+const { page, m } = Astro.props;
+const { Content, headings } = await render(page.entry);
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+const outlinks = linkList(m, m.linksOut.get(page.rel));
+const backlinks = linkList(m, m.linksIn.get(page.rel));
+const local = page.data && !page.readme && page.rel !== 'wiki/index.md' && page.rel !== 'wiki/log.md' ? localGraph(m, page.rel) : { nodes: [] };
+const hideH1 = headings[0]?.depth === 1 && headings[0].text.trim() === page.title.trim();
+const folder = page.rel.split('/').slice(0, -1).join('/');
+const element = page.rel.startsWith('wiki/elements/') && page.data.element;
+const member = page.tree === 'wiki' && page.data.type === 'entity' && m.teamNames.has(page.title) ? page.title : null;
+
+const sub = page.rel.split('/')[1];
+const base = page.rel.replace(/\.md$/, '');
+const originals = [...files].filter((f) => f !== page.rel && f.startsWith(base + '.') && !f.endsWith('.md') && rehosted(f));
+const onlineUrl = page.data.url || page.data.fetched_url || page.data.sourceUrl;
+const facts = Object.entries(page.data || {}).filter(([k]) => k !== 'title');
+
+// Search (Pagefind reads these at build time; see /search/). One element per filter value: a joined
+// value would be one filter "A, B". Meta and sort values are inline, so each needs its own element.
+const list = (v) => (Array.isArray(v) ? v : String(v ?? '').split(',')).map((x) => String(x).trim()).filter(Boolean);
+const tags = list(page.data.tags);
+const letters = [...new Set([...list(page.data.elements), ...list(page.data.element), ...tags].filter((t) => /^[A-G]$/.test(t)))].sort();
+const isDrive = /drive\.google|docs\.google/.test(onlineUrl || '');
+const formats = [...new Set([...originals.map((o) => o.split('.').pop().toLowerCase()), ...(onlineUrl ? [isDrive ? 'drive' : 'online'] : [])])];
+const node = m.graph.nodes.find((n) => n.id === page.route);
+const firstPara = page.body.split(/\n\s*\n/).map((b) => b.trim()).find((b) => b && !/^(#|\||>|<|---|_Markdown copy|```|- |\* |\d+\. )/.test(b)) ?? '';
+const summary = plain(m.sourceInfo.get(page.rel)?.summary || firstPara).replace(/\s+/g, ' ').slice(0, 220);
+const date = pageDate(page.data, page.rel);
+// A source page's evidence is the first raw/ file it links to (its Citation names it first).
+const rawRel = page.data.type === 'source' ? (m.linksOut.get(page.rel) ?? []).find((r) => r.startsWith('raw/') && !r.endsWith('/README.md')) : null;
+const { text: _, ...prov } = provenance(page, rawRel ? m.byRel.get(rawRel) : null, m.sourceInfo.get(page.rel));
+const provText = Object.entries(prov).filter(([k]) => !['url', 'tier'].includes(k)).map(([, v]) => v).join(' · ');
+// The facts' values (people, publisher, channel...) as plain words for the index; the <dl> itself is
+// left out so excerpts don't read "urlhttps://...". Links, dates and the keys that are facets are skipped.
+// Provenance keys are indexed through provText; ids are not words.
+const factText = facts.filter(([k]) => !['type', 'tags', 'elements', 'element', 'origin', 'source_count', 'slug', 'excerpt_of', 'excerpt_lines', 'people', 'publisher'].includes(k)).flatMap(([, v]) => (Array.isArray(v) ? v : [v])).map((v) => (v instanceof Date ? '' : String(v)))
+  .filter((v) => v && !/^(https?:|\d{4}-\d\d-\d\d|\d+$|true$|false$|unknown$|yes$|no$)/i.test(v)).join(' · ');
+const filters = [
+  `section:${page.tree}`,
+  ...(page.data.origin ? [`origin:${page.data.origin}`] : []),
+  ...letters.map((L) => `element:${L}`),
+  ...tags.filter((t) => !/^[A-G]$/.test(t)).map((t) => `tag:${t}`),
+  ...(formats.length ? formats : ['markdown']).map((f) => `format:${f}`),
+];
+const meta = Object.entries({
+  path: page.rel, date, summary, elements: letters.join(' '), system: node?.system, thumb: node?.img,
+  color: node?.hub ? COLORS.readme : COLORS[page.type] ?? COLORS.readme, linksin: String(backlinks.length),
+  original: originals[0] && routeOf(originals[0]),
+  drive: driveHref(page.route),
+  prov: Object.keys(prov).length ? JSON.stringify(prov) : '',
+}).filter(([, v]) => v);
+---
+<section class="pt-4 pb-6">
+  <div class={local.nodes.length > 1 ? 'grid md:grid-cols-2 gap-8 items-start' : ''}>
+    <div data-pagefind-body>
+      <a href={routeOf(folder) ?? '/'} class="text-sm text-uc-blue-dark hover:underline" data-pagefind-ignore>← {folder}</a>
+      <div class="mt-4 text-xs uppercase tracking-wide text-gray-500" data-pagefind-ignore data-pagefind-filter="kind" data-pagefind-meta="kind">{page.tree === 'raw' ? (page.readme ? 'folder guide' : RAW_FOLDERS[sub]?.[0] ?? sub) : page.type}</div>
+      <div class="flex items-center gap-4 mt-1 mb-4">
+        {member && (page.data.photo || photoFor(member)) && <img src={page.data.photo || photoFor(member)} alt="" width="96" height="96" class="h-24 w-24 rounded-full object-cover border border-gray-200" />}
+        <h1 class="text-3xl font-bold text-gray-900" data-pagefind-meta="title">{page.title}</h1>
+      </div>
+      {(originals.length > 0 || onlineUrl) && (
+        <p class="text-sm mb-3 flex flex-wrap gap-x-4" data-pagefind-ignore>
+          {originals.map((o) => <a class="underline text-uc-blue-dark" href={routeOf(o)}>Original {o.split('.').pop().toUpperCase()}</a>)}
+          {onlineUrl && <a class="underline text-uc-blue-dark" href={onlineUrl} target="_blank" rel="noopener">{/drive\.google|docs\.google/.test(onlineUrl) ? 'Open in the Drive ↗' : 'Online ↗'}</a>}
+        </p>
+      )}
+      {facts.length > 0 && (
+        <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm text-gray-600 mb-2" data-pagefind-ignore>
+          {facts.map(([k, v]) => (<><dt class="text-gray-400">{k}</dt><dd class="break-words">{v instanceof Date ? day(v) : Array.isArray(v) ? v.join(', ') : String(v)}</dd></>))}
+        </dl>
+      )}
+      <p class="text-sm text-gray-500" data-pagefind-ignore>Links to {outlinks.length} · Referenced by {backlinks.length}</p>
+      <div hidden>
+        <p>{factText}</p>
+        <p>{provText}</p>
+        {filters.map((f) => <span data-pagefind-filter={f} />)}
+        {meta.map(([k, v]) => <span data-pagefind-meta={`${k}:${v}`} />)}
+        {date && <span data-pagefind-sort={`date:${date}`} />}
+        <span data-pagefind-sort={`title:${page.title.toLowerCase()}`} />
+      </div>
+    </div>
+    {local.nodes.length > 1 && <div class="card p-2"><GraphView data={local} variant="classic" focusNodeId={page.route} labels height={360} filters={false} catalog={false} legend={false} client:visible /></div>}
+  </div>
+</section>
+
+<section class="border-t border-gray-200 pt-8 lg:flex lg:gap-10">
+  {(toc.length > 1 || outlinks.length || backlinks.length) && (
+    <aside class="hidden lg:block w-56 shrink-0">
+      <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
+        <WikiNav outlinks={outlinks} backlinks={backlinks} toc={toc} tocClass="xl:hidden" />
+      </div>
+    </aside>
+  )}
+  <div class="min-w-0 flex-1" data-pagefind-body data-pagefind-filter={`section:${page.tree}`}>
+    <article class={`article-prose max-w-3xl ${hideH1 ? '[&>h1:first-child]:hidden' : ''}`}><Content /></article>
+    {element && <p class="mt-6" data-pagefind-ignore><a class="btn" href="#suggest" data-element={element}>Suggest reading for element {element}</a></p>}
+    <p class="mt-10 text-xs text-gray-500" data-pagefind-ignore>Source file: <code>{page.rel}</code>{page.data.updated && <>, updated {day(page.data.updated)}</>}.</p>
+  </div>
+  <WikiToc toc={toc} />
+</section>
+
+<script is:inline>
+  // Search results link here with ?highlight=word; mark those words. Loads nothing otherwise.
+  if (/[?&]highlight=/.test(location.search)) {
+    const s = document.createElement('script');
+    s.type = 'module'; s.src = '/pagefind/pagefind-highlight.js';
+    s.onload = () => new PagefindHighlight({ highlightParam: 'highlight' });
+    document.head.append(s);
+  }
+</script>
