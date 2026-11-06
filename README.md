@@ -5,7 +5,7 @@ The website of the [CalCompute Research Library](https://github.com/CalCompute/l
 ## How it works
 
 - The site reads `../library-wiki` in place (set `WIKI_DIR` to read another folder) and never writes to it. All content changes happen in the library repo, following its `AGENTS.md`.
-- `npm run build` renders every page with Astro and builds the search index with Pagefind. The site holds no source documents: an original opens its copy in the public Google Drive, or the publisher's page.
+- `npm run build` renders every page with Astro, draws the knowledge graph as `graph.png` (`scripts/graph-png.mjs`: every node the Report reaches, no links, transparent, 1800 px square), and builds the search index with Pagefind. CaliforniaCompute.org shows `/graph.png` on its home page, so each deploy of this site updates it there. The site holds no source documents: an original opens its copy in the public Google Drive, or the publisher's page.
 - **Suggest reading** opens the visitor's own email program with a message to team@californiacompute.org (`src/components/SuggestDialog.astro`, `src/lib/mailto.js`). The site sends nothing.
 - The home page's five counts, the calendar, and the hollow markers in the graph for the consortium's calls and messages come from `library-wiki/activity.json`, which the consortium's team publishes. It holds kinds, dates, element letters and counts only.
 
