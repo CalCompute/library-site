@@ -91,6 +91,20 @@ body {
 .chip[aria-pressed="true"] { background: #eaf6fc; color: #002033; border-color: #72cdf4; }
 .chip[aria-pressed="false"] { opacity: 0.55; }
 .card { background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; }
+/* A shelf (Shelf.astro) runs to both edges of the screen, so a cover is cut only there. .shelf-wrap spans the page's
+   centred text column, so --gutter (the space beside that column, from the wrap's own width, 100cqw) lines the first
+   cover up with the text, and a snapped cover rests there. No scrollbar: swipe, shift-scroll or tab through the
+   covers. 100vw counts a classic scrollbar; body clips the few pixels that adds. */
+.shelf-wrap { container-type: inline-size; }
+.shelf {
+  --gutter: calc((100vw - 100cqw) / 2);
+  margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter);
+  display: flex; align-items: flex-end; gap: 1rem; overflow-x: auto; scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.shelf::-webkit-scrollbar { display: none; }
+.shelf > * { flex-shrink: 0; scroll-snap-align: start; }
+body:has(.shelf) { overflow-x: clip; }
 /* Marking rows done (DoneBar.astro): struck through, never hidden. */
 [data-done] .done-box + .cell { text-decoration: line-through; color: #6b7280; }
 .done-badge { display: none; margin-left: 0.4rem; font-size: 0.7rem; border-radius: 999px; padding: 0.05rem 0.45rem; background: #e6f4ea; color: #1e6b35; }

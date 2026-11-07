@@ -10,6 +10,7 @@ import RepoBrowser from '../components/RepoBrowser.astro';
 import Social from '../components/Social.astro';
 import { load, folderUrl } from '../lib/load.js';
 import Calendar from '../components/Calendar.astro';
+import ReportProgress from '../components/ReportProgress.astro';
 
 const m = await load();
 const s = m.status;
@@ -29,7 +30,7 @@ const drive = folderUrl(m, 'CalCompute Library');
     </div>
     <div class="pointer-events-none relative z-10 max-w-7xl mx-auto px-4 pt-10">
       <div class="text-xs uppercase tracking-[0.18em] text-uc-blue-dark mb-2">CalCompute Consortium · research library</div>
-      <h1 class="text-4xl sm:text-6xl font-bold text-uc-navy tracking-tight mb-5 max-w-xl">CalCompute Framework Report</h1>
+      <h1 class="text-4xl sm:text-6xl font-bold text-uc-navy tracking-tight mb-5 max-w-xl">CalCompute Framework Research</h1>
       <div class="inline-flex flex-wrap items-center gap-2 [&>a]:pointer-events-auto">
         <a class="btn" href={drive ?? '#drive'} {...(drive ? { target: '_blank', rel: 'noopener' } : {})}><img src="/images/apps/google-drive.svg" alt="" class="h-4 w-auto" />Google Drive{drive && ' ↗'}</a>
         <a class="btn" href="https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A" target="_blank" rel="noopener"><img src="/images/apps/slack.svg" alt="" class="h-4 w-auto" />Slack ↗</a>
@@ -38,7 +39,8 @@ const drive = folderUrl(m, 'CalCompute Library');
       <dl class="mt-6 flex flex-wrap gap-x-8 gap-y-3">
         {stats.map(([n, label, note]) => <div class="pointer-events-auto flex flex-col-reverse" title={note}><dt class="text-xs text-gray-500 whitespace-nowrap">{label}</dt><dd data-count-up={n} class="text-2xl font-bold text-uc-navy [&>span]:inline-block [&>span]:w-[0.645em] [&>span]:text-center" set:html={digits(n)} /></div>)}
       </dl>
-      <p class="text-xs text-gray-500 mt-4">{m.pages.length} wiki pages · {m.graph.edges.length} links · updated {s.lastLog?.date ?? 'never'}</p>
+      <div class="mt-5"><ReportProgress /></div>
+      <p class="text-xs text-gray-500 mt-3">{m.pages.length} wiki pages · {m.graph.edges.length} links · updated {s.lastLog?.date ?? 'never'}</p>
       <div class="mt-3 -ml-1.5 flex gap-1 [&>a]:pointer-events-auto"><Social class="text-gray-400 hover:text-uc-navy" /></div>
     </div>
   </section>

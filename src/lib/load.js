@@ -2,7 +2,7 @@
 // Computed once per build (module cache). Everything here is read from ../library-wiki as it is.
 import path from 'node:path';
 import { getCollection } from 'astro:content';
-import { WIKI, files, routeOf, linksIn, parseTable, section, plain, flagsIn, readWiki, readJson, wikiCommit, driveHref } from './wiki.js';
+import { WIKI, files, routeOf, linksIn, parseTable, section, plain, flagsIn, readWiki, readJson, wikiCommit, driveHref, rendersHere, day, copyOf, outsideUrl, coverOf, remoteCoverOf, remotePdfSources } from './wiki.js';
 import { photoFor, markForEntity } from './brand.js';
 import { todayPT } from './calendar.js';
 
@@ -67,9 +67,10 @@ export async function load() {
   const outboundOf = (p) => (p.tree === 'raw' && !p.readme ? String(p.data.url || p.data.sourceUrl || '').trim() || null : null);
   const nodes = pages.filter((p) => p.route).map((p) => { // folder guides have no page, so no node
     const im = imgOf(p);
-    const drive = driveHref(p.route); // in the public Drive: drawn as a square, and opens there
+    const here = rendersHere(p.route); // a full legislative copy: opens its own page
+    const drive = here ? null : driveHref(p.route); // in the public Drive: drawn as a square, and opens there
     return {
-      id: p.route, href: drive ?? outboundOf(p) ?? undefined, label: p.title, desc: `${p.type} · ${p.rel}`, group: p.tree, type: p.type, system: drive ? 'drive' : 'repo',
+      id: p.route, href: here ? undefined : drive ?? outboundOf(p) ?? undefined, label: p.title, desc: `${p.type} · ${p.rel}`, group: p.tree, type: p.type, system: drive ? 'drive' : 'repo',
       size: Math.max(Math.min(p.body.length, 20000), im ? 6000 : 0), ring: ring(p), hub: HUBS.has(p.rel), ...(im ?? {}),
     };
   });
@@ -128,6 +129,22 @@ export async function load() {
     const hub = pages.find((p) => p.rel.startsWith('wiki/elements/') && p.data.element === L);
     return { L, hub, text: elementText[L], count: hub ? Number(hub.data.source_count) || 0 : 0 };
   });
+  // ---- shelves on /library/: each reading list's sources that have a PDF, with its cover (scripts/covers.mjs) ----
+  const pdfByCopy = new Map([...files].filter((f) => /\.pdf$/i.test(f)).map((f) => [copyOf(f), f]));
+  const remote = new Map(remotePdfSources().map((s) => [s.rel, s.url]));
+  // A cover and where it opens: the original in the Drive or at its publisher (outsideUrl), or an online-only PDF's url.
+  const coverFor = (r) => { const pdf = pdfByCopy.get(evidenceOf({ linksOut }, r)); return pdf ? { src: coverOf(pdf), href: outsideUrl(pdf) } : remote.has(r) ? { src: remoteCoverOf(r), href: remote.get(r) } : null; };
+  // Every page that shows a cover (Page.astro): each source page with a PDF, and each PDF's Markdown copy.
+  const covers = new Map([...pdfByCopy].filter(([copy]) => copy).map(([copy, pdf]) => [copy, { src: coverOf(pdf), href: outsideUrl(pdf) }]));
+  for (const p of pages) if (p.data.type === 'source' && coverFor(p.rel)) covers.set(p.rel, coverFor(p.rel));
+  // When the team surfaced a source (user, Nov. 6, 2026): its page's `created`, which the seed carried over from the
+  // research wiki, or the date its evidence file is named with when that is earlier (sources shared before that wiki began).
+  const addedOf = (r) => [day(byRel.get(r).data.created), path.posix.basename(evidenceOf({ linksOut }, r) ?? '').match(/^\d{4}-\d\d-\d\d/)?.[0]].filter(Boolean).sort()[0] ?? '';
+  // Most recent first; a tie keeps the reading list's order.
+  const shelves = elements.filter((e) => e.hub).map((e) => ({ ...e, books: (linksOut.get(e.hub.rel) ?? [])
+    .filter((r) => r.startsWith('wiki/sources/') && coverFor(r))
+    .map((r) => ({ title: byRel.get(r).title, route: byRel.get(r).route, cover: coverFor(r).src, added: addedOf(r) }))
+    .sort((a, b) => b.added.localeCompare(a.added)) }));
   const checklist = byRel.get('wiki/elements/Statutory requirements.md');
   const requirements = checklist ? parseTable(section(checklist.body, 'Checklist')) : { headers: [], rows: [] };
 
@@ -185,7 +202,7 @@ export async function load() {
 
   cache = {
     pages, byRel, byRoute, byTitle, linksOut, linksIn: linksIn_, unresolved, graph, REPORT_ID, folders,
-    elements, f1, checklist, requirements, members, groups, teamNames, entityFor, sourceInfo, sourcesTable, flags, status, meta,
+    elements, shelves, covers, f1, checklist, requirements, members, groups, teamNames, entityFor, sourceInfo, sourcesTable, flags, status, meta,
     activity: { ...act, stats }, calendar,
   };
   return cache;
@@ -201,7 +218,10 @@ export function localGraph(m, rel) {
   };
 }
 
-export const linkList = (m, rels = []) => rels.map((r) => m.byRel.get(r)).map((p) => ({ id: p.route, label: p.title }));
+// A source page's evidence: the first raw/ file it links to (its Citation names it first).
+export const evidenceOf = (m, rel) => (m.linksOut.get(rel) ?? []).find((r) => r.startsWith('raw/') && !r.endsWith('/README.md'));
+
+export const linkList =(m, rels = []) => rels.map((r) => m.byRel.get(r)).map((p) => ({ id: p.route, label: p.title }));
 
 export const folderUrl = (m, suffix) => {
   const id = Object.entries(m.folders).find(([k]) => k.endsWith(suffix))?.[1];

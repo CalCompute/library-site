@@ -1,0 +1,18 @@
+---
+// One element's shelf: the PDF sources on its reading list by their first page, most recently added first (load.js
+// shelves). On /library/ and on the element's own page. Place it in the page's full text width: it runs out to both
+// edges of the screen from there.
+const { shelf, heading } = Astro.props;
+---
+{shelf?.books.length > 0 && (
+  <section class="shelf-wrap mb-8" data-pagefind-ignore>
+    <h3 class="text-base font-semibold mb-2">{heading ?? <a class="hover:underline" href={shelf.hub.route}>{shelf.hub.title}</a>}<span class="ml-1.5 text-sm font-normal text-gray-500">{shelf.books.length}</span></h3>
+    <div class="shelf pt-2 border-b-4 border-stone-300">
+      {shelf.books.map((b) => (
+        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} class="transition-transform hover:-translate-y-1">
+          <img src={b.cover} alt={b.title} loading="lazy" width="320" height="414" class="h-44 w-auto rounded-sm border border-gray-200 shadow-md" />
+        </a>
+      ))}
+    </div>
+  </section>
+)}

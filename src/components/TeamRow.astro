@@ -1,6 +1,6 @@
 ---
 // The people californiacompute.org lists, in two rows: the consortium, supporting researchers and advisors and the
-// operations team, untitled; then the government advocates and Legislative champions. Photo, name, institution and its mark, and the profile link. From the library-wiki
+// operations team, untitled; then the government advocates and Legislative champions. Photo, name (to the person's page), institution and its mark. From the library-wiki
 // team pages (member: yes, group). No contact details.
 import { photoFor, logosFor, PLACEHOLDER } from '../lib/brand.js';
 const { m } = Astro.props;
@@ -16,7 +16,6 @@ const { m } = Astro.props;
             <div class="min-w-0 text-sm">
               <a class="font-medium text-uc-navy hover:underline" href={p.page.route}>{p.name}</a>
               <div class="text-gray-500 truncate" title={p.position || p.institution}>{p.institution || p.position}</div>
-              {p.profile && <a class="text-xs underline text-uc-blue-dark" href={p.profile} target="_blank" rel="noopener">Profile ↗</a>}
             </div>
             {logosFor(p.institution).slice(0, 1).map((l) => <img src={l.src} alt={l.name} class="h-6 w-auto ml-auto shrink-0" loading="lazy" />)}
           </div>

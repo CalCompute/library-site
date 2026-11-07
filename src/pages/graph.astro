@@ -6,7 +6,7 @@ const m = await load();
 ---
 <Layout title="Graph" bare footer={false}>
   <div class="fixed inset-x-0 top-14 bottom-0">
-    <GraphView data={m.graph} variant="radial" navigator animate download client:only="react">
+    <GraphView data={m.graph} variant="radial" navigator animate download focusHash client:only="react">
       <h1 class="text-base font-bold text-gray-900">Knowledge graph</h1>
       <p class="text-gray-600">Every page in wiki/ and raw/, and every link between them. A tool to explore the research; the consortium does not use AI to write the Report. <a class="info-link" href="/how-it-works/#graph" title="How it works" aria-label="How it works"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z M12 11v5.5 M12 7.6v.4" /></svg></a></p>
     </GraphView>

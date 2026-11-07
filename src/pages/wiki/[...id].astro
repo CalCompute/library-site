@@ -14,7 +14,9 @@ export async function getStaticPaths() {
 const m = await load();
 const { rel, dir } = Astro.props;
 const page = rel && m.byRel.get(rel);
+// A team page's own description: its role, or failing that its position (californiacompute.org links here).
+const description = (page?.data.member && (page.data.role || page.data.position)) || undefined;
 ---
-<Layout title={page ? page.title : dir + '/'}>
+<Layout title={page ? page.title : dir + '/'} description={description}>
   {page ? <Page page={page} m={m} /> : <Folder dir={dir} m={m} />}
 </Layout>

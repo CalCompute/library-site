@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "build": "astro build && node scripts/graph-png.mjs && pagefind --site dist",
     "preview": "astro preview",
-    "test": "node --test src/lib/wiki.test.js"
+    "test": "node --test src/lib/wiki.test.js",
+    "covers": "node scripts/covers.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^4.4.2",

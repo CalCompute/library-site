@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import FilterTable from '../components/FilterTable.astro';
+import Shelf from '../components/Shelf.astro';
 import { load, folderUrl } from '../lib/load.js';
 import { toRows } from '../lib/wiki.js';
 const m = await load();
@@ -18,6 +19,9 @@ const raw = ['legislative', 'web', 'shared'];
     {leg && <a class="chip" href={leg} rel="noopener">Drive: Legislative Sources</a>}
     {raw.map((d) => <a class="chip" href={`/raw/${d}/`}>raw/{d}</a>)}
   </div>
+  <h2 class="text-xl font-bold mb-1">Shelves</h2>
+  <p class="text-sm text-gray-600 mb-4">The PDF sources on each element's reading list, shown by their first page, the most recently added first.</p>
+  {m.shelves.map((s) => <Shelf shelf={s} />)}
   <h2 class="text-xl font-bold mb-3">Sources</h2>
   <FilterTable hash headers={t.headers} rows={toRows(t, 'wiki/index.md', chips)} chips={chips} />
 </Layout>

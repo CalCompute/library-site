@@ -5,9 +5,11 @@ import { render } from 'astro:content';
 import GraphView, { COLORS } from './WikiGraph.jsx';
 import WikiNav from './WikiNav.astro';
 import WikiToc from './WikiToc.astro';
-import { localGraph, linkList } from '../lib/load.js';
-import { files, day, routeOf, RAW_FOLDERS, pageDate, plain, driveHref, rehosted } from '../lib/wiki.js';
-import { photoFor } from '../lib/brand.js';
+import Icon from './Icon.astro';
+import Shelf from './Shelf.astro';
+import { localGraph, linkList, evidenceOf } from '../lib/load.js';
+import { files, day, routeOf, RAW_FOLDERS, pageDate, plain, driveHref, rehosted, profileLinks } from '../lib/wiki.js';
+import { photoFor, logosFor } from '../lib/brand.js';
 import { provenance } from '../lib/provenance.js';
 
 const { page, m } = Astro.props;
@@ -20,6 +22,17 @@ const hideH1 = headings[0]?.depth === 1 && headings[0].text.trim() === page.titl
 const folder = page.rel.split('/').slice(0, -1).join('/');
 const element = page.rel.startsWith('wiki/elements/') && page.data.element;
 const member = page.tree === 'wiki' && page.data.type === 'entity' && m.teamNames.has(page.title) ? page.title : null;
+// A team page is a profile: photo, position, institution and its mark, the californiacompute.org group and role,
+// and its Links as a row, in place of the raw frontmatter list.
+const GROUPS = { consortium: 'Consortium member', supporting: 'Supporting researcher', operations: 'Operations team', advocates: 'Government advocate', legislative: 'Legislative champion' };
+const photo = member && (page.data.photo || photoFor(member));
+// A PDF source's first page (scripts/covers.mjs), beside the title; it opens the original.
+const cover = m.covers.get(page.rel);
+const position = member ? String(page.data.position ?? '') : '';
+const institution = member ? String(page.data.institution ?? '') : '';
+const mark = member && logosFor(institution)[0];
+const links = member ? profileLinks(page.body) : [];
+const iconFor = (href) => (/linkedin\.com/.test(href) ? 'linkedin' : /github\.com/.test(href) ? 'github' : 'globe');
 
 const sub = page.rel.split('/')[1];
 const base = page.rel.replace(/\.md$/, '');
@@ -38,8 +51,7 @@ const node = m.graph.nodes.find((n) => n.id === page.route);
 const firstPara = page.body.split(/\n\s*\n/).map((b) => b.trim()).find((b) => b && !/^(#|\||>|<|---|_Markdown copy|```|- |\* |\d+\. )/.test(b)) ?? '';
 const summary = plain(m.sourceInfo.get(page.rel)?.summary || firstPara).replace(/\s+/g, ' ').slice(0, 220);
 const date = pageDate(page.data, page.rel);
-// A source page's evidence is the first raw/ file it links to (its Citation names it first).
-const rawRel = page.data.type === 'source' ? (m.linksOut.get(page.rel) ?? []).find((r) => r.startsWith('raw/') && !r.endsWith('/README.md')) : null;
+const rawRel = page.data.type === 'source' ? evidenceOf(m, page.rel) : null;
 const { text: _, ...prov } = provenance(page, rawRel ? m.byRel.get(rawRel) : null, m.sourceInfo.get(page.rel));
 const provText = Object.entries(prov).filter(([k]) => !['url', 'tier'].includes(k)).map(([, v]) => v).join(' · ');
 // The facts' values (people, publisher, channel...) as plain words for the index; the <dl> itself is
@@ -55,7 +67,7 @@ const filters = [
   ...(formats.length ? formats : ['markdown']).map((f) => `format:${f}`),
 ];
 const meta = Object.entries({
-  path: page.rel, date, summary, elements: letters.join(' '), system: node?.system, thumb: node?.img,
+  path: page.rel, date, summary, elements: letters.join(' '), system: node?.system, thumb: node?.img ?? cover?.src,
   color: node?.hub ? COLORS.readme : COLORS[page.type] ?? COLORS.readme, linksin: String(backlinks.length),
   original: originals[0] && routeOf(originals[0]),
   drive: driveHref(page.route),
@@ -67,17 +79,44 @@ const meta = Object.entries({
     <div data-pagefind-body>
       <a href={routeOf(folder) ?? '/'} class="text-sm text-uc-blue-dark hover:underline" data-pagefind-ignore>← {folder}</a>
       <div class="mt-4 text-xs uppercase tracking-wide text-gray-500" data-pagefind-ignore data-pagefind-filter="kind" data-pagefind-meta="kind">{page.tree === 'raw' ? (page.readme ? 'folder guide' : RAW_FOLDERS[sub]?.[0] ?? sub) : page.type}</div>
-      <div class="flex items-center gap-4 mt-1 mb-4">
-        {member && (page.data.photo || photoFor(member)) && <img src={page.data.photo || photoFor(member)} alt="" width="96" height="96" class="h-24 w-24 rounded-full object-cover border border-gray-200" />}
-        <h1 class="text-3xl font-bold text-gray-900" data-pagefind-meta="title">{page.title}</h1>
+      <div class="flex items-center gap-5 mt-1 mb-4">
+        {photo && <img src={photo} alt="" width="128" height="128" class="h-32 w-32 shrink-0 rounded-full object-cover border border-gray-200" />}
+        {cover && (
+          <a href={cover.href ?? undefined} target="_blank" rel="noopener" title={cover.href ? 'Open the original' : undefined} class="shrink-0" data-pagefind-ignore>
+            <img src={cover.src} alt="First page of the original document" width="320" height="414" class="h-40 w-auto rounded-sm border border-gray-200 shadow-md" />
+          </a>
+        )}
+        <div class="min-w-0">
+          <h1 class="text-3xl font-bold text-gray-900" data-pagefind-meta="title">{page.title}</h1>
+          {member && (
+            <div class="mt-2 space-y-1 text-sm text-gray-600" data-pagefind-ignore>
+              {position && <p class="text-base text-gray-800">{position}</p>}
+              {(mark || (institution && !position.includes(institution))) && (
+                <p class="flex items-center gap-2">
+                  {mark && <img src={mark.src} alt={mark.name} class="h-6 w-auto" />}
+                  {institution && !position.includes(institution) && <span>{institution}</span>}
+                </p>
+              )}
+              {GROUPS[page.data.group] && <p class="text-xs uppercase tracking-wide text-uc-blue-dark">{GROUPS[page.data.group]}</p>}
+            </div>
+          )}
+        </div>
       </div>
+      {member && page.data.role && <p class="mb-3 max-w-prose text-gray-700" data-pagefind-ignore>{page.data.role}</p>}
+      {links.length > 0 && (
+        <ul class="mb-4 flex flex-wrap gap-2" data-pagefind-ignore>
+          {links.map((l) => (
+            <li><a class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 px-3 py-1 text-sm text-uc-blue-dark hover:border-uc-blue" href={l.href} target="_blank" rel="noopener"><Icon name={iconFor(l.href)} class="h-3.5 w-3.5" />{l.label} ↗</a></li>
+          ))}
+        </ul>
+      )}
       {(originals.length > 0 || onlineUrl) && (
         <p class="text-sm mb-3 flex flex-wrap gap-x-4" data-pagefind-ignore>
           {originals.map((o) => routeOf(o) && <a class="underline text-uc-blue-dark" href={routeOf(o)} target="_blank" rel="noopener">{/drive\.google\.com/.test(routeOf(o)) ? 'Original in the Drive ↗' : 'Original ↗'}</a>)}
           {onlineUrl && <a class="underline text-uc-blue-dark" href={onlineUrl} target="_blank" rel="noopener">{/drive\.google|docs\.google/.test(onlineUrl) ? 'Open in the Drive ↗' : 'Online ↗'}</a>}
         </p>
       )}
-      {facts.length > 0 && (
+      {facts.length > 0 && !member && (
         <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm text-gray-600 mb-2" data-pagefind-ignore>
           {facts.map(([k, v]) => (<><dt class="text-gray-400">{k}</dt><dd class="break-words">{v instanceof Date ? day(v) : Array.isArray(v) ? v.join(', ') : String(v)}</dd></>))}
         </dl>
@@ -92,9 +131,16 @@ const meta = Object.entries({
         <span data-pagefind-sort={`title:${page.title.toLowerCase()}`} />
       </div>
     </div>
-    {local.nodes.length > 1 && <div class="card p-2"><GraphView data={local} variant="classic" focusNodeId={page.route} labels height={360} filters={false} catalog={false} legend={false} client:visible /></div>}
+    {local.nodes.length > 1 && (
+      <div class="card p-2">
+        <GraphView data={local} variant="classic" focusNodeId={page.route} labels height={360} filters={false} catalog={false} legend={false} client:visible />
+        {member && <p class="px-2 pb-1 text-right text-sm" data-pagefind-ignore><a class="underline text-uc-blue-dark" href={`/graph/#${page.route}`}>Open in the full graph</a></p>}
+      </div>
+    )}
   </div>
 </section>
+
+{element && <Shelf shelf={m.shelves.find((s) => s.L === element)} heading="Shelf" />}
 
 <section class="border-t border-gray-200 pt-8 lg:flex lg:gap-10">
   {(toc.length > 1 || outlinks.length || backlinks.length) && (

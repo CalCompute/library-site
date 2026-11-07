@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Page from '../../components/Page.astro';
 import Folder from '../../components/Folder.astro';
 import { load } from '../../lib/load.js';
-import { dirs, idOf, driveHref, routeOf } from '../../lib/wiki.js';
+import { dirs, idOf, driveHref, routeOf, rendersHere } from '../../lib/wiki.js';
 
 export async function getStaticPaths() {
   const m = await load();
@@ -15,6 +15,6 @@ const m = await load();
 const { rel, dir } = Astro.props;
 const page = rel && m.byRel.get(rel);
 ---
-<Layout title={page ? page.title : dir + '/'} redirect={driveHref(page ? page.route : routeOf(dir))}>
+<Layout title={page ? page.title : dir + '/'} redirect={page && rendersHere(page.route) ? null : driveHref(page ? page.route : routeOf(dir))}>
   {page ? <Page page={page} m={m} /> : <Folder dir={dir} m={m} />}
 </Layout>

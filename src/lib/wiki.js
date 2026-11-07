@@ -150,6 +150,10 @@ export function relationBullets(body, fromRel) {
   return out;
 }
 
+// A team page's `## Links` bullets as [{label, href}], outside links only: the profile header's link row.
+export const profileLinks = (body) =>
+  [...section(body, 'Links').matchAll(LINK_RE)].filter((m) => /^https?:\/\//.test(m[2])).map((m) => ({ label: plain(m[1]), href: m[2] }));
+
 // First GFM table in `md` -> {headers, rows: [{Header: cellMarkdown}]}.
 export function parseTable(md) {
   const lines = md.split('\n');
@@ -267,7 +271,17 @@ export function rehosted(rel) {
   return Boolean(sibling && /^rehost: yes$/m.test(readWiki(sibling).split('\n---', 2)[0]));
 }
 
-// ---- the Drive's own links: humans go to the Drive, never to the mirror's copy ----
+// ---- full legislative copies render here (user, Nov. 6, 2026) ----
+// A raw/legislative/ file without `excerpt_lines:` is a full copy, word for word (raw/legislative/README.md). Its
+// page is the document, so it renders here with its Drive PDF linked; an excerpt still opens in the Drive.
+export const isExcerpt = (rel) => /^excerpt_lines:/m.test(readWiki(rel).split('\n---', 2)[0]);
+let hereRoutes;
+export function rendersHere(route) {
+  hereRoutes ??= new Set([...files].filter((f) => /^raw\/legislative\/[^/]+\.md$/.test(f) && !f.endsWith('/README.md') && !isExcerpt(f)).map(routeOf));
+  return hereRoutes.has(String(route ?? '').split('#')[0]);
+}
+
+// ---- the Drive's own links: humans go to the Drive, never to the mirror's copy, except a full legislative copy ----
 // raw/drive/.listing.json (bin/drive_pull.py write_listing) lists every Drive item, with the Markdown copy the
 // pull made of it. Route of each copy, and of each pulled Drive folder, -> its Drive URL.
 let driveLinks;
@@ -289,6 +303,18 @@ export function driveHref(route) {
   return driveLinks.get(String(route ?? '').split('#')[0]) ?? null;
 }
 
-// Every href="<route of a Drive copy>" in a page's HTML -> the Drive URL, opened in a new tab.
+// Every href="<route of a Drive copy>" in a page's HTML -> the Drive URL, opened in a new tab. A full legislative
+// copy keeps its href: it renders here.
 export const linkOutToDrive = (html) =>
-  html.replace(/href="(\/raw\/[^"#]*)(#[^"]*)?"/g, (m, r) => { const u = driveHref(r); return u ? `href="${u}" target="_blank" rel="noopener"` : m; });
+  html.replace(/href="(\/raw\/[^"#]*)(#[^"]*)?"/g, (m, r) => { const u = !rendersHere(r) && driveHref(r); return u ? `href="${u}" target="_blank" rel="noopener"` : m; });
+
+// ---- covers: page one of a PDF, rendered by scripts/covers.mjs into public/covers/ (user, Nov. 6, 2026) ----
+// A local original is keyed by its path. An online-only PDF (rehost: no, url ends in .pdf) is keyed by its source
+// page: the script fetches it into .cache/ and keeps only the thumbnail.
+export const coverOf = (pdf) => `/covers/${idOf(pdf.replace(/\.pdf$/i, ''))}.webp`;
+export const remoteCoverOf = (sourceRel) => `/covers/${idOf(sourceRel)}.webp`;
+export const remotePdfSources = () => [...files].filter((f) => f.startsWith('wiki/sources/') && f.endsWith('.md')).flatMap((rel) => {
+  const fm = readWiki(rel).split('\n---', 2)[0];
+  const url = fm.match(/^url:\s*"?([^"\n]+?)"?\s*$/m)?.[1];
+  return /^rehost: no$/m.test(fm) && /\.pdf(\?|$)/i.test(url ?? '') ? [{ rel, url }] : [];
+});

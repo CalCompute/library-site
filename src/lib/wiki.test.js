@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolveHref, routeOf, flagsIn, pyconst, readWiki, readJson, files, rehosted, WIKI } from './wiki.js';
+import { resolveHref, routeOf, flagsIn, pyconst, readWiki, readJson, files, rehosted, WIKI, profileLinks, rendersHere, linkOutToDrive, driveHref, coverOf, remoteCoverOf, remotePdfSources } from './wiki.js';
 import { parseHash, toHash } from './hash.js';
 import { suggestMail, TO, SUBJECT } from './mailto.js';
 
@@ -177,4 +177,27 @@ test('the public repos never point outside themselves', () => {
 test('folder guides are not pages', () => {
   for (const f of files) if (/^raw\/(.+\/)?README\.md$/.test(f)) assert.equal(routeOf(f), null, f);
   assert.ok(routeOf('wiki/index.md'));
+});
+
+test('a team page header lists only its outside links', () => {
+  const body = '## Background\n\n- A fact ([Src](../sources/Src.md)).\n\n## Links\n\n- [Lab **site**](https://lab.example.edu/)\n- [A source](../sources/Src.md)\n- [LinkedIn](https://www.linkedin.com/in/x/)\n';
+  assert.deepEqual(profileLinks(body), [{ label: 'Lab site', href: 'https://lab.example.edu/' }, { label: 'LinkedIn', href: 'https://www.linkedin.com/in/x/' }]);
+  assert.deepEqual(profileLinks('## Sources\n\n- [X](https://x.org/)'), []);
+});
+
+test('a full legislative copy renders here; an excerpt opens in the Drive', () => {
+  const full = routeOf('raw/legislative/SB-53 Senate Judiciary analysis 2025-04-08.md');
+  const excerpt = routeOf('raw/legislative/SB-53 Assembly Floor analysis 2025-09-08.md');
+  assert.ok(rendersHere(full) && driveHref(full), 'the full copy has a Drive PDF and still renders');
+  assert.ok(!rendersHere(excerpt) && driveHref(excerpt));
+  assert.equal(linkOutToDrive(`<a href="${full}">x</a>`), `<a href="${full}">x</a>`);
+  assert.match(linkOutToDrive(`<a href="${excerpt}">x</a>`), /href="https:\/\/drive\.google\.com\//);
+  assert.ok(!rendersHere(routeOf('raw/legislative/SB-53 Gov Code 11546.8.md')), 'the statute excerpt');
+  assert.ok(rendersHere(routeOf('raw/legislative/SB-53 chaptered 2025-09-29.md')), 'the full bill');
+});
+
+test('every PDF has a committed cover (npm run covers)', () => {
+  const covers = [...[...files].filter((f) => /\.pdf$/i.test(f)).map(coverOf), ...remotePdfSources().map((s) => remoteCoverOf(s.rel))];
+  assert.ok(covers.length >= 30);
+  for (const c of covers) assert.ok(fs.existsSync(path.join('public', c)), `missing ${c}: run npm run covers`);
 });

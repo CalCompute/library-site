@@ -585,7 +585,8 @@ function Canvas({ data, variant, focusNodeId, selectedId = null, selectOnClick =
 
     // inPlace (and navigator): the canvas stays hidden until the layout has settled all the way, so the graph is in place on its
     // first paint. Settling runs in short slices that yield to the browser, so the page and the spinner stay live.
-    if (inPlace) canvas.style.visibility = 'hidden'
+    // Revealed with a quick fade, not a pop: transparent while hidden, so showing it runs the transition.
+    if (inPlace) { canvas.style.visibility = 'hidden'; if (!reduceMotion) { canvas.style.opacity = '0'; canvas.style.transition = 'opacity 250ms ease-out' } }
     measure()
     // Calm load-in: settle most of the layout before the first paint, then fade the canvas in while the rest settles.
     sim.presettling = true
@@ -604,7 +605,7 @@ function Canvas({ data, variant, focusNodeId, selectedId = null, selectOnClick =
       let clear = false
       if (sim.alpha <= ALPHA_MIN) while (!clear && passes < 1600 && !spent()) { clear = separate(1); if (++passes % 400 === 0 && !clear) escape() }
       if (!clear && passes < 1600) { tick.port2.postMessage(0); return }
-      sim.settling = false; eased = false; canvas.style.visibility = ''; settledRef.current?.(); kick()
+      sim.settling = false; eased = false; canvas.style.visibility = ''; canvas.style.opacity = ''; settledRef.current?.(); kick()
     }
     if (inPlace) settle()
     else if (!reduceMotion) {
