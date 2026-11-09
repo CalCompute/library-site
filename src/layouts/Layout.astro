@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { load } from '../lib/load.js';
 import SuggestDialog from '../components/SuggestDialog.astro';
+import NewsletterForm from '../components/NewsletterForm.astro';
 
 const DESCRIPTION = 'Public research sources for the CalCompute Framework Report, grouped by the seven elements of California Government Code section 11546.8 (SB 53).';
 // redirect: a page of a Drive item sends its visitor to the Drive (lib/wiki.js driveHref).
@@ -12,7 +13,7 @@ const SLACK = 'https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s3
 const footer = [
   ['Report', [['/statute/', 'Statute'], ['/wiki/elements/statutory-requirements/', 'Statutory requirements'], ['/wiki/overview/', 'Overview']]],
   ['Library', [['/library/', 'Sources'], ['/graph/', 'Graph'], ['/explorer/', 'Compute Governance Explorer'], ['/wiki/index/', 'Index'], ['/#drive', 'Drive'], ['/#github', 'GitHub'], ['/raw/', 'Originals (raw/)']]],
-  ['Take part', [['#suggest', 'Suggest reading'], ['/about/', 'About'], ['/how-it-works/', 'How it works'], ['https://californiacompute.org/', 'CalCompute ↗']]],
+  ['Take part', [['#suggest', 'Suggest or correct'], ['/about/', 'About'], ['/how-it-works/', 'How it works'], ['https://californiacompute.org/', 'CalCompute ↗']]],
 ];
 // The social row, in the main site's order, then Slack, which the library has and the main site does not.
 const social = [['https://www.linkedin.com/company/calcompute/', 'LinkedIn'], ['https://x.com/CalCompute', 'X'], ['https://github.com/CalCompute', 'GitHub'], ['mailto:team@CaliforniaCompute.org', 'Email'], [SLACK, 'Slack']];
@@ -54,7 +55,7 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
             ))}
           </ul>
         </nav>
-        <a href="#suggest" class="shrink-0 text-sm btn whitespace-nowrap">Suggest reading</a>
+        <a href="#suggest" class="shrink-0 text-sm btn whitespace-nowrap">Suggest or correct</a>
         <a id="search-open" href="/search/" class="text-sm border border-gray-300 rounded-md px-2.5 py-1 text-gray-600 hover:text-gray-900 whitespace-nowrap" aria-label="Search" aria-keyshortcuts="Control+K Meta+K">
           Search <kbd class="text-xs text-gray-400">⌘K</kbd>
         </a>
@@ -86,6 +87,7 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
           <ul class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
             {social.map(([href, label]) => <li><a class="hover:text-white inline-flex items-center gap-1.5" href={href} {...(href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>{logoOf(href) && <img src={logoOf(href)} alt="" class={`h-3.5 w-auto ${/github|linkedin|\/x\.svg/.test(logoOf(href)) ? 'invert' : ''}`} />}{label}</a></li>)}
           </ul>
+          <div class="mt-6 max-w-sm"><NewsletterForm dark /></div>
         </div>
         {footer.map(([title, links]) => (
           <div>

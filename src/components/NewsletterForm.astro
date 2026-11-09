@@ -1,0 +1,31 @@
+---
+// The newsletter sign-up: one email address, stored for later (src/worker.js). Nothing is sent yet.
+// In the footer of every page; the explorer's footer carries a copy (index.html).
+const { dark = false } = Astro.props;
+---
+<form class="newsletter" data-newsletter novalidate>
+  <label class={`block text-sm font-medium ${dark ? 'text-white' : ''}`} for="newsletter-email">Follow the Framework Report</label>
+  <p class={`text-xs ${dark ? 'text-gray-400' : 'text-gray-500'}`}>Occasional email on the Consortium's progress. Nothing else.</p>
+  <div class="mt-2 flex gap-2">
+    <input id="newsletter-email" name="email" type="email" required autocomplete="email" maxlength="254" placeholder="you@example.edu"
+      class={`min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-sm ${dark ? 'bg-white/10 text-white placeholder:text-gray-400 border border-white/30' : 'border border-gray-300'}`} />
+    <button type="submit" class={`btn py-1 text-sm ${dark ? 'border-white text-white hover:bg-white hover:text-uc-navy' : 'btn-primary'}`}>Subscribe</button>
+  </div>
+  <label class="hidden" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
+  <input type="hidden" name="page" />
+  <div data-turnstile></div>
+  <p data-status aria-live="polite" class={`mt-1 text-xs ${dark ? 'text-gray-300' : 'text-gray-600'}`}></p>
+</form>
+
+<script>
+  import { check, send } from '../lib/forms.js';
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-newsletter]')) {
+    const email = form.elements.namedItem('email') as HTMLInputElement;
+    email.addEventListener('focus', () => check(form).catch(() => {}), { once: true });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      if (await send(form, 'subscribe', "Thank you. You're on the list.")) email.value = '';
+    });
+  }
+</script>

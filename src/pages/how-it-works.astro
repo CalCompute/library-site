@@ -25,10 +25,10 @@ const recent = m.status.entries.slice(-10).reverse();
     <p>The <a href="/explorer/">Compute Governance Explorer</a> is not part of library-wiki. It is built from its own workbook in <a href="https://github.com/CalCompute/compute-governance-explainer" target="_blank" rel="noopener">CalCompute/compute-governance-explainer</a> and served at <code>/explorer/</code> on this site's address. On every push its build checks each reference in the workbook. Rows marked <code>public = No</code> do not go on the page.</p>
     <h2>Where a suggestion goes</h2>
     <ol>
-      <li>You press <a href="#suggest">Suggest reading</a>. Your own email program opens with a message to team@californiacompute.org.</li>
+      <li>You press <a href="#suggest">Suggest or correct</a> and send the form. It is stored for the consortium's team; nothing on the site changes.</li>
       <li>The suggestion goes on the <a href="/wiki/analyses/suggestions/">Suggestions</a> page, without your name.</li>
       <li>A consortium member reads it and decides.</li>
-      <li>An approved source gets a source page and a place on its element's reading list. An approved question gets an answer page in <a href="/wiki/analyses/suggestions/">analyses</a>.</li>
+      <li>An approved source gets a source page and a place on its element's reading list. An approved correction is made by hand, and the page's log says so. An approved question gets an answer page in <a href="/wiki/analyses/suggestions/">analyses</a>.</li>
     </ol>
     <h2>Recent changes</h2>
     <ul>{recent.map((e) => <li><span class="text-gray-500">{e.date} · {e.type}</span> {e.title}{e.summary && <>: {e.summary}</>}</li>)}</ul>

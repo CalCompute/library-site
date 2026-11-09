@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { resolveHref, routeOf, flagsIn, pyconst, readWiki, readJson, files, rehosted, WIKI, profileLinks, rendersHere, linkOutToDrive, driveHref, coverOf, remoteCoverOf, remotePdfSources } from './wiki.js';
 import { parseHash, toHash } from './hash.js';
-import { suggestMail, TO, SUBJECT } from './mailto.js';
+import { subscriber, suggestion } from '../worker.js';
 
 test('links resolve to site routes', () => {
   const from = 'wiki/elements/D - Use Parameters.md';
@@ -79,15 +79,20 @@ test('search: query operators, page dates, did-you-mean score', async () => {
   assert.ok(similar('Governanse', 'Governance') > 0.7);
 });
 
-test('a suggestion is one email to the team mailbox, with no hidden fields', () => {
-  const m = suggestMail({ url: ' https://example.org/report.pdf ', what: 'A state report.\nPage 4 has costs.', element: 'B - Cost & Funding' });
-  assert.equal(TO, 'team@californiacompute.org');
-  assert.equal(m.subject, SUBJECT);
-  assert.equal(SUBJECT, 'Suggested reading');
-  assert.ok(m.href.startsWith(`mailto:${TO}?subject=Suggested%20reading&body=`));
-  assert.equal(decodeURIComponent(m.href.split('body=')[1]), m.body);
-  assert.equal(m.body, 'Link: https://example.org/report.pdf\r\nElement: B - Cost & Funding\r\n\r\nWhat it is, or my question:\r\nA state report.\r\nPage 4 has costs.');
-  assert.match(suggestMail({ what: 'Q?' }).body, /^Link: \r\nElement: not sure\r\n/);
+test('the forms store only what the visitor typed, trimmed and capped', () => {
+  const form = (o) => { const f = new FormData(); for (const [k, v] of Object.entries(o)) f.set(k, v); return f; };
+  assert.deepEqual(subscriber(form({ email: '  Ana@Example.ORG ', page: 'https://californiacompute.org/get-involved/#newsletter' })),
+    { row: { email: 'ana@example.org', source: 'californiacompute.org/get-involved/' } });
+  assert.ok(subscriber(form({ email: 'not an email' })).error);
+  assert.equal(subscriber(form({ email: 'a@b.co', page: 'nonsense' })).row.source, null);
+  const s = suggestion(form({ kind: 'correction', what: ' Page 4 has the 2024 figure.\r\nIt is 2025. ', about: 'Cost   & Funding', email: '',
+    institution: 'UC Davis', page: 'https://research.californiacompute.org/wiki/elements/b-cost-funding/', extra: 'dropped' }));
+  assert.deepEqual(s.row, { kind: 'correction', what: 'Page 4 has the 2024 figure.\nIt is 2025.', email: null, about: 'Cost & Funding', link: null,
+    element: null, name: null, institution: 'UC Davis', source: 'research.californiacompute.org/wiki/elements/b-cost-funding/' });
+  assert.ok(suggestion(form({ kind: 'spam', what: 'x' })).error);
+  assert.ok(suggestion(form({ kind: 'data', what: '   ' })).error);
+  assert.ok(suggestion(form({ kind: 'data', what: 'x', email: 'nope' })).error);
+  assert.equal(suggestion(form({ kind: 'question', what: 'x'.repeat(5000) })).row.what.length, 4000);
 });
 
 test('activity.json holds only markers, edges to library pages, counts and track calendar entries', () => {

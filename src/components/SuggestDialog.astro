@@ -1,52 +1,85 @@
 ---
-// Suggest reading or ask a question: one email to the team mailbox from the visitor's own mail program.
-// Opens from any link to #suggest; a link with data-element="A" picks that element. Closing the form cancels it.
+// Suggest or correct: a source, a correction, data or a question, stored for a consortium member to read (src/worker.js).
+// Opens from any link to #suggest, and on load when the address ends in #suggest. A link's data-element="A" picks
+// that element and data-kind="correction" the kind; the address may carry ?kind=, ?about= and ?link= (the explorer
+// links here that way). Nothing a visitor sends changes the library by itself.
 const ELEMENTS = [['A', 'Landscape Analysis'], ['B', 'Cost & Funding'], ['C', 'Governance'], ['D', 'Use Parameters'], ['E', 'Workforce'], ['F', 'Partnerships'], ['G', 'Public Sector Workforce']];
+const KINDS = [['reading', 'A source to read'], ['correction', 'A correction'], ['data', 'New data'], ['question', 'A question']];
+const input = 'mt-1 block w-full border border-gray-300 rounded-md p-2';
 ---
 <dialog id="suggest" aria-labelledby="suggest-title" class="w-[min(600px,calc(100vw-2rem))] max-h-[85vh] mt-20 mx-auto rounded-xl p-5 backdrop:bg-black/30">
-  <form method="dialog" class="space-y-3 text-sm">
+  <form class="space-y-3 text-sm" novalidate>
     <div class="flex items-baseline justify-between gap-3">
-      <h2 id="suggest-title" class="text-lg font-bold">Suggest reading</h2>
+      <h2 id="suggest-title" class="text-lg font-bold">Suggest or correct</h2>
       <button type="button" class="chip" data-cancel>Cancel</button>
     </div>
-    <p class="text-gray-600">Know a report, dataset or law that belongs here? Have a question the sources could answer? Send it to the consortium. A member reads every suggestion, and the <a class="underline" href="/wiki/analyses/suggestions/">Suggestions</a> page shows what happened to it. Your name is never shown.</p>
-    <label class="block"><span class="font-medium">Link</span> <span class="text-gray-500">(optional)</span>
-      <input name="url" type="url" placeholder="https://" class="mt-1 block w-full border border-gray-300 rounded-md p-2" />
+    <p class="text-gray-600">Know a report, dataset or law that belongs here? Found something wrong? Have a question the sources could answer? A consortium member reads every suggestion and decides. Nothing changes until a person makes the change, and the <a class="underline" href="/wiki/analyses/suggestions/">Suggestions</a> page shows what happened to it.</p>
+    <label class="block"><span class="font-medium">What are you sending?</span>
+      <select name="kind" required class={input}>{KINDS.map(([v, t]) => <option value={v}>{t}</option>)}</select>
     </label>
-    <label class="block"><span class="font-medium">What it is, or your question</span>
-      <textarea name="what" required rows="4" class="mt-1 block w-full border border-gray-300 rounded-md p-2"
-        placeholder="For example: a state report on data center costs, which may help element B."></textarea>
+    <label class="block"><span class="font-medium">What it is about</span> <span class="text-gray-500">(optional: a page, a source or an item)</span>
+      <input name="about" maxlength="500" class={input} />
+    </label>
+    <label class="block"><span class="font-medium">Link</span> <span class="text-gray-500">(optional)</span>
+      <input name="link" type="url" maxlength="500" placeholder="https://" class={input} />
+    </label>
+    <label class="block"><span class="font-medium">Your suggestion, correction or question</span>
+      <textarea name="what" required maxlength="4000" rows="4" class={input}
+        placeholder="For example: a state report on data center costs, which may help element B. Or: the 2024 figure on this page is now out of date."></textarea>
     </label>
     <label class="block"><span class="font-medium">Element</span>
-      <select name="element" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+      <select name="element" class={input}>
         <option value="">Not sure</option>
         {ELEMENTS.map(([L, t]) => <option value={`${L} - ${t}`}>{L} - {t}</option>)}
       </select>
     </label>
-    <p class="text-xs text-gray-500">Send opens your own email program with the message filled in, to team@californiacompute.org. Nothing is sent until you send it there.</p>
-    <button type="button" class="btn btn-primary py-1" data-open>Send</button>
+    <fieldset class="grid gap-3 sm:grid-cols-3">
+      <legend class="mb-1 text-gray-500">About you (optional)</legend>
+      <label class="block"><span class="font-medium">Name</span><input name="name" autocomplete="name" maxlength="200" class={input} /></label>
+      <label class="block"><span class="font-medium">Email</span><input name="email" type="email" autocomplete="email" maxlength="254" class={input} /></label>
+      <label class="block"><span class="font-medium">Institution</span><input name="institution" autocomplete="organization" maxlength="200" class={input} /></label>
+    </fieldset>
+    <p class="text-xs text-gray-500">Your name and email stay with the team; we use the email only to reply. Your institution may appear on the <a class="underline" href="https://californiacompute.org/get-involved#board" target="_blank" rel="noopener">contributors board</a>.</p>
+    <label class="hidden" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
+    <input type="hidden" name="page" />
+    <div data-turnstile></div>
+    <div class="flex items-center gap-3">
+      <button type="submit" class="btn btn-primary py-1">Send</button>
+      <p data-status aria-live="polite" class="text-gray-600"></p>
+    </div>
   </form>
 </dialog>
 
 <script>
-  import { suggestMail } from '../lib/mailto.js';
+  import { check, send } from '../lib/forms.js';
   const dlg = document.getElementById('suggest') as HTMLDialogElement;
   const form = dlg.querySelector('form')!;
   const field = (n: string) => form.elements.namedItem(n) as HTMLInputElement;
-  dlg.querySelector('[data-open]')!.addEventListener('click', () => {
+  const status = form.querySelector('[data-status]')!;
+  function open(pick: { element?: string; kind?: string; about?: string; link?: string } = {}) {
+    if (pick.element) field('element').value = [...(field('element') as unknown as HTMLSelectElement).options].find((o) => o.value.startsWith(pick.element + ' '))?.value ?? '';
+    if (pick.kind) field('kind').value = pick.kind;
+    if (pick.about) field('about').value = pick.about;
+    if (pick.link) field('link').value = pick.link;
+    status.textContent = '';
+    dlg.showModal(); field('what').focus();
+    check(form).catch(() => {});
+  }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
     if (!form.reportValidity()) return;
-    location.href = suggestMail({ url: field('url').value, what: field('what').value, element: field('element').value }).href;
-    dlg.close();
+    if (await send(form, 'suggest', 'Thank you. A consortium member will read it.')) { form.reset(); setTimeout(() => dlg.close(), 1800); }
   });
   document.addEventListener('click', (e) => {
     const a = (e.target as HTMLElement | null)?.closest?.<HTMLElement>('a[href="#suggest"]');
     if (!a) return;
     e.preventDefault();
-    const L = a.dataset.element;
-    if (L) field('element').value = [...(field('element') as unknown as HTMLSelectElement).options].find((o) => o.value.startsWith(L + ' '))?.value ?? '';
-    dlg.showModal(); field('url').focus();
+    open({ element: a.dataset.element, kind: a.dataset.kind, about: a.dataset.about });
   });
-  dlg.addEventListener('close', () => form.reset());
+  if (location.hash === '#suggest') {
+    const q = new URLSearchParams(location.search);
+    open({ kind: q.get('kind') ?? undefined, about: q.get('about') ?? undefined, link: q.get('link') ?? undefined });
+  }
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   dlg.querySelector('[data-cancel]')!.addEventListener('click', () => dlg.close());
 </script>

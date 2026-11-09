@@ -1,7 +1,13 @@
 {
   // Cloudflare Worker that serves the built site (dist/) as static assets. Cloudflare builds and deploys it
   // from GitHub on every push to main (see README.md, Deploy). The name must match the Worker's name in Cloudflare.
+  // Only /api/* runs src/worker.js: the newsletter and suggestion forms of this site, the explorer and
+  // CaliforniaCompute.org. It stores them in the D1 database below (schema.sql) and checks each with Turnstile,
+  // whose secret TURNSTILE_SECRET is set on the Worker in the dashboard, never here.
   "name": "calcompute-public-library",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./dist", "html_handling": "auto-trailing-slash" }
+  "main": "src/worker.js",
+  "assets": { "directory": "./dist", "html_handling": "auto-trailing-slash", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  // database_id: from `npx wrangler d1 create calcompute-community` (README.md, Forms). A build with the placeholder fails.
+  "d1_databases": [{ "binding": "DB", "database_name": "calcompute-community", "database_id": "aaf33aa2-e294-4158-80e0-74848bcd0822" }]
 }

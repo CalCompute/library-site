@@ -162,7 +162,10 @@ const meta = Object.entries({
   )}
   <div class="min-w-0 flex-1" data-pagefind-body data-pagefind-filter={`section:${page.tree}`}>
     <article class={`article-prose max-w-3xl ${hideH1 ? '[&>h1:first-child]:hidden' : ''}`}><Content /></article>
-    {element && <p class="mt-6" data-pagefind-ignore><a class="btn" href="#suggest" data-element={element}>Suggest reading for element {element}</a></p>}
+    <p class="mt-6 flex flex-wrap gap-2" data-pagefind-ignore>
+      {element && <a class="btn" href="#suggest" data-element={element}>Suggest reading for element {element}</a>}
+      <a class="btn" href="#suggest" data-kind="correction" data-about={page.title}>Suggest a correction to this page</a>
+    </p>
     <p class="mt-10 text-xs text-gray-500" data-pagefind-ignore>Source file: <code>{page.rel}</code>{page.data.updated && <>, updated {day(page.data.updated)}</>}.</p>
   </div>
   <WikiToc toc={toc} />
