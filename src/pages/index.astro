@@ -32,6 +32,7 @@ const drive = folderUrl(m, 'CalCompute Library');
       <div class="text-xs uppercase tracking-[0.18em] text-uc-blue-dark mb-2">CalCompute Consortium · research library</div>
       <h1 class="text-4xl sm:text-6xl font-bold text-uc-navy tracking-tight mb-5 max-w-xl">CalCompute Framework Research</h1>
       <div class="inline-flex flex-wrap items-center gap-2 [&>a]:pointer-events-auto">
+        <a class="btn" href="/explorer/">Compute Governance Explorer</a>
         <a class="btn" href={drive ?? '#drive'} {...(drive ? { target: '_blank', rel: 'noopener' } : {})}><img src="/images/apps/google-drive.svg" alt="" class="h-4 w-auto" />Google Drive{drive && ' ↗'}</a>
         <a class="btn" href="https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A" target="_blank" rel="noopener"><img src="/images/apps/slack.svg" alt="" class="h-4 w-auto" />Slack ↗</a>
         <a class="btn" href="https://github.com/CalCompute" target="_blank" rel="noopener"><img src="/images/apps/github.svg" alt="" class="h-4 w-auto" />GitHub ↗</a>
@@ -56,7 +57,7 @@ const drive = folderUrl(m, 'CalCompute Library');
         </a>
       ))}
     </div>
-    {m.checklist && <p class="text-sm mt-3"><a class="underline text-uc-blue-dark" href={m.checklist.route}>Statutory requirements</a> · <a class="underline text-uc-blue-dark" href="/statute/">The statute</a></p>}
+    {m.checklist && <p class="text-sm mt-3"><a class="underline text-uc-blue-dark" href={m.checklist.route}>Statutory requirements</a> · <a class="underline text-uc-blue-dark" href="/statute/">The statute</a> · <a class="underline text-uc-blue-dark" href="/explorer/">Compute Governance Explorer</a> (element C)</p>}
   </section>
 
   <section id="this-week" class="relative z-10 max-w-7xl mx-auto px-4 pb-12 scroll-mt-16">

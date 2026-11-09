@@ -140,12 +140,22 @@ const meta = Object.entries({
   </div>
 </section>
 
+{element === 'C' && (
+  <aside class="card p-5 mb-8 flex flex-col sm:flex-row sm:items-center gap-4" data-pagefind-ignore>
+    <div class="flex-1">
+      <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Interactive</p>
+      <h2 class="text-lg font-bold text-uc-navy">Compute Governance Explorer</h2>
+      <p class="text-sm text-gray-600 mt-1">Who owns, hosts, runs, funds, governs and allocates shared AI and HPC compute, compared across real configurations, with every fact tagged and sourced.</p>
+    </div>
+    <a class="btn btn-primary shrink-0" href="/explorer/">Open the explorer</a>
+  </aside>
+)}
 {element && <Shelf shelf={m.shelves.find((s) => s.L === element)} heading="Shelf" />}
 
 <section class="border-t border-gray-200 pt-8 lg:flex lg:gap-10">
   {(toc.length > 1 || outlinks.length || backlinks.length) && (
     <aside class="hidden lg:block w-56 shrink-0">
-      <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
+      <div class="sticky top-22 max-h-[calc(100vh-6.5rem)] overflow-y-auto pb-8">
         <WikiNav outlinks={outlinks} backlinks={backlinks} toc={toc} tocClass="xl:hidden" />
       </div>
     </aside>

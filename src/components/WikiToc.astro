@@ -6,7 +6,7 @@ const { toc = [] } = Astro.props;
 ---
 {toc.length > 1 && (
   <aside class="hidden xl:block w-52 shrink-0">
-    <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-8">
+    <div class="sticky top-22 max-h-[calc(100vh-6.5rem)] overflow-y-auto pb-8">
       <div class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">On this page</div>
       <ul class="text-sm space-y-1.5 border-l border-gray-200">
         {toc.map((h) => (
@@ -24,8 +24,8 @@ const { toc = [] } = Astro.props;
 
 <style>
   .toc-link.active {
-    border-color: var(--color-ap-cyan, #00b0ff);
-    color: var(--color-ap-cyan, #00b0ff);
+    border-color: var(--color-uc-blue);
+    color: var(--color-uc-blue);
   }
 </style>
 

@@ -7,13 +7,15 @@ const DESCRIPTION = 'Public research sources for the CalCompute Framework Report
 // redirect: a page of a Drive item sends its visitor to the Drive (lib/wiki.js driveHref).
 const { title, wide = false, bare = false, footer: showFooter = true, redirect = null, description = DESCRIPTION } = Astro.props;
 const m = await load();
-const nav = [['/graph/', 'Graph'], ['/library/', 'Library'], ['/statute/', 'Statute'], ['/about/', 'About']];
+const nav = [['/graph/', 'Graph'], ['/explorer/', 'Explorer'], ['/library/', 'Library'], ['/statute/', 'Statute'], ['/about/', 'About']];
 const SLACK = 'https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A';
 const footer = [
   ['Report', [['/statute/', 'Statute'], ['/wiki/elements/statutory-requirements/', 'Statutory requirements'], ['/wiki/overview/', 'Overview']]],
-  ['Library', [['/library/', 'Sources'], ['/graph/', 'Graph'], ['/wiki/index/', 'Index'], ['/#drive', 'Drive'], ['/#github', 'GitHub'], ['/raw/', 'Originals (raw/)']]],
-  ['Take part', [['#suggest', 'Suggest reading'], [SLACK, 'Slack ↗'], ['https://www.linkedin.com/company/calcompute/', 'LinkedIn ↗'], ['https://x.com/CalCompute', 'X ↗'], ['/about/', 'About'], ['/how-it-works/', 'How it works']]],
+  ['Library', [['/library/', 'Sources'], ['/graph/', 'Graph'], ['/explorer/', 'Compute Governance Explorer'], ['/wiki/index/', 'Index'], ['/#drive', 'Drive'], ['/#github', 'GitHub'], ['/raw/', 'Originals (raw/)']]],
+  ['Take part', [['#suggest', 'Suggest reading'], ['/about/', 'About'], ['/how-it-works/', 'How it works'], ['https://californiacompute.org/', 'CalCompute ↗']]],
 ];
+// The social row, in the main site's order, then Slack, which the library has and the main site does not.
+const social = [['https://www.linkedin.com/company/calcompute/', 'LinkedIn'], ['https://x.com/CalCompute', 'X'], ['https://github.com/CalCompute', 'GitHub'], ['mailto:team@CaliforniaCompute.org', 'Email'], [SLACK, 'Slack']];
 const here = Astro.url.pathname;
 // The service's logo beside each footer link that goes to it (the GitHub, LinkedIn and X marks are black; inverted on the navy footer).
 const logoOf = (href) => (href === SLACK ? '/images/apps/slack.svg' : /github\.com|#github$/.test(href) ? '/images/apps/github.svg'
@@ -40,9 +42,9 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
   </head>
   <body>
     <header class="fixed top-0 inset-x-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
+      <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center gap-4">
         <a href="/" class="shrink-0 flex items-center gap-2" aria-label="CalCompute Research Library, home">
-          <img src="/images/brand/calcompute-wordmark-sticker.svg" alt="CalCompute" height="32" width="126" class="h-8 w-auto" />
+          <img src="/images/brand/calcompute-wordmark-sticker.svg" alt="CalCompute" height="36" width="161" class="h-9 w-auto" />
           <span class="text-xs uppercase tracking-wide text-gray-400">research</span>
         </a>
         <nav class="ml-auto min-w-0 overflow-x-auto overflow-y-hidden">
@@ -69,13 +71,22 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
       <p class="px-4 py-2 text-xs text-gray-500 border-t border-gray-200">↑ ↓ choose a page · Enter searches everything, with exact title matches first · <code>kind:source</code> and other filters work there · Esc closes</p>
     </dialog>
 
-    <main class={bare ? 'pt-14' : `pt-20 pb-16 px-4 ${wide ? 'max-w-7xl' : 'max-w-6xl'} mx-auto`}>
+    <main class={bare ? 'pt-16' : `pt-22 pb-16 px-4 ${wide ? 'max-w-7xl' : 'max-w-6xl'} mx-auto`}>
       <slot />
     </main>
 
     {showFooter && <footer class="bg-uc-navy text-gray-300">
-      <div class="max-w-7xl mx-auto px-4 py-10 grid gap-8 sm:grid-cols-[auto_1fr_1fr_1fr]">
-        <a href="/" aria-label="Home"><img src="/images/brand/calcompute-icon-white.svg" alt="" width="45" height="40" class="h-10 w-auto" /></a>
+      <div class="max-w-[1200px] mx-auto px-6 pt-10 pb-8 grid gap-8 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+        <div>
+          <a href="/" aria-label="CalCompute Research Library, home" class="inline-flex items-center gap-2">
+            <img src="/images/brand/calcompute-icon-white.svg" alt="" width="40" height="40" class="h-10 w-auto" />
+            <img src="/images/brand/calcompute-lettering-white.svg" alt="CalCompute" width="167" height="40" class="h-10 w-auto" />
+          </a>
+          <p class="mt-3 text-sm text-gray-300">California's Public AI Cloud</p>
+          <ul class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            {social.map(([href, label]) => <li><a class="hover:text-white inline-flex items-center gap-1.5" href={href} {...(href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>{logoOf(href) && <img src={logoOf(href)} alt="" class={`h-3.5 w-auto ${/github|linkedin|\/x\.svg/.test(logoOf(href)) ? 'invert' : ''}`} />}{label}</a></li>)}
+          </ul>
+        </div>
         {footer.map(([title, links]) => (
           <div>
             <h2 class="text-sm font-medium text-white mb-3">{title}</h2>
@@ -85,7 +96,11 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
           </div>
         ))}
       </div>
-      <p class="max-w-7xl mx-auto px-4 pb-8 text-xs text-gray-400">This library is a tool to navigate and explore the research. The consortium does not use AI to write the CalCompute Framework Report.</p>
+      <hr class="border-uc-blue-light/30" />
+      <div class="max-w-[1200px] mx-auto px-6 py-6 flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-400">
+        <p>© {new Date().getFullYear()} CalCompute</p>
+        <p>This library is a tool to navigate and explore the research. The consortium does not use AI to write the CalCompute Framework Report.</p>
+      </div>
     </footer>}
 
     <SuggestDialog />
@@ -124,7 +139,9 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
       async function open() {
         if (location.pathname.startsWith('/search')) return (document.getElementById('sq') as HTMLInputElement | null)?.focus();
         dlg.showModal(); qs.focus(); qs.select();
-        pages ??= await fetch('/graph.json').then((r) => r.json()).then((g) => g.nodes.filter((n: Hit) => n.id.startsWith('/'))).catch(() => []);
+        // The explorer is a page but not a node of the knowledge graph, so it joins the title list here.
+        pages ??= [{ id: '/explorer/', label: 'Compute Governance Explorer', desc: 'Who owns, hosts, runs, funds, governs and allocates shared compute' },
+          ...await fetch('/graph.json').then((r) => r.json()).then((g) => g.nodes.filter((n: Hit) => n.id.startsWith('/'))).catch(() => [])];
         suggest();
       }
       qs.addEventListener('input', suggest);

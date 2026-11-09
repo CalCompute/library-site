@@ -1,17 +1,10 @@
 @import "tailwindcss";
 
-/* Tokens and type from ap0110-systems.github.io (globals.css). Light only. */
+/* UC palette from the CalCompute public site's tokens.css; Kunst Grotesk is the library's own type. Light only. */
 @font-face { font-family: 'Kunst Grotesk'; src: url('/fonts/Kunst%20Grotesk%20Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
 @font-face { font-family: 'Kunst Grotesk'; src: url('/fonts/Kunst%20Grotesk%20Medium.woff2') format('woff2'); font-weight: 500 700; font-display: swap; }
 
 @theme {
-  --color-ap-cyan: #00b0ff;
-  --color-ap-red: #E4002B;
-  --color-ap-orange: #FF4F00;
-  --color-ap-yellow: #E2B46C;
-  --color-ap-green: #47B332;
-  --color-ap-blue: #0032A0;
-  --color-ap-violet: #7e1dfb;
   --font-sans: 'Kunst Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
   /* UC palette, from the CalCompute public site's tokens.css */
@@ -38,7 +31,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Article prose (ap0110) */
+/* Article prose */
 .article-prose { color: #1f2937; line-height: 1.75; font-size: 1rem; overflow-wrap: anywhere; }
 .article-prose h1 { font-size: 1.9rem; font-weight: 700; color: #111827; margin: 0 0 1rem; }
 .article-prose h2 { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 2.25rem 0 0.9rem; }
@@ -69,9 +62,9 @@ body {
 /* Flags (⚠️ / 🔍 / 💡 blockquotes), classed by remark-wiki.mjs */
 .article-prose blockquote.callout { border-radius: 0 0.5rem 0.5rem 0; padding: 0.75rem 1rem; color: #1f2937; }
 .article-prose blockquote.callout p { margin-bottom: 0; }
-.callout-warning { border-left-color: #FF4F00 !important; background: rgba(255,79,0,0.06); }
-.callout-gap { border-left-color: #00b0ff !important; background: rgba(0,176,255,0.06); }
-.callout-connection { border-left-color: #7e1dfb !important; background: rgba(126,29,251,0.05); }
+.callout-warning { border-left-color: #ff6e1b !important; background: rgba(255,110,27,0.06); }
+.callout-gap { border-left-color: #1295d8 !important; background: rgba(18,149,216,0.06); }
+.callout-connection { border-left-color: #e44c9a !important; background: rgba(228,76,154,0.05); }
 
 /* A link to a file outside the mirror (bin/, setup.sh): shown, never dropped. */
 .missing-link { text-decoration: underline dotted #9ca3af; text-underline-offset: 2px; cursor: help; }
