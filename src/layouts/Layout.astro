@@ -1,27 +1,35 @@
 ---
 import '../styles/global.css';
-import { load } from '../lib/load.js';
+import { load, folderUrl } from '../lib/load.js';
 import SuggestDialog from '../components/SuggestDialog.astro';
 import NewsletterForm from '../components/NewsletterForm.astro';
 
 const DESCRIPTION = 'Public research sources for the CalCompute Framework Report, grouped by the seven elements of California Government Code section 11546.8 (SB 53).';
 // redirect: a page of a Drive item sends its visitor to the Drive (lib/wiki.js driveHref).
-const { title, wide = false, bare = false, footer: showFooter = true, redirect = null, description = DESCRIPTION } = Astro.props;
+const { title, bare = false, footer: showFooter = true, redirect = null, description = DESCRIPTION } = Astro.props;
 const m = await load();
-const nav = [['/graph/', 'Graph'], ['/explorer/', 'Explorer'], ['/library/', 'Library'], ['/statute/', 'Statute'], ['/about/', 'About']];
+const nav = [['/graph/', 'Graph'], ['/explorer/', 'Explorer'], ['/directory/', 'Landscape'], ['/library/', 'Library'], ['/statute/', 'Statute'], ['/about/', 'About']];
 const SLACK = 'https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A';
 const footer = [
   ['Report', [['/statute/', 'Statute'], ['/wiki/elements/statutory-requirements/', 'Statutory requirements'], ['/wiki/overview/', 'Overview']]],
-  ['Library', [['/library/', 'Sources'], ['/graph/', 'Graph'], ['/explorer/', 'Compute Governance Explorer'], ['/wiki/index/', 'Index'], ['/#drive', 'Drive'], ['/#github', 'GitHub'], ['/raw/', 'Originals (raw/)']]],
-  ['Take part', [['#suggest', 'Suggest or correct'], ['/about/', 'About'], ['/how-it-works/', 'How it works'], ['https://californiacompute.org/', 'CalCompute ↗']]],
+  ['Library', [['/library/', 'Sources'], ['/directory/', 'California Compute Landscape'], ['https://californiacompute.org/directory/', 'California Compute Directory ↗'], ['/graph/', 'Graph'], ['/explorer/', 'Compute Governance Explorer'], ['/wiki/index/', 'Index'], [folderUrl(m, 'CalCompute Library') ?? '/library/', 'Drive ↗'], ['https://github.com/CalCompute/library-wiki', 'GitHub ↗'], ['/raw/', 'Originals (raw/)']]],
+  ['Take part', [['https://californiacompute.org/get-involved/', 'Take the survey ↗'], ['/about/', 'About'], ['/how-it-works/', 'How it works'], ['#suggest', 'Suggest or correct'], ['https://californiacompute.org/', 'CalCompute ↗']]],
 ];
-// The social row, in the main site's order, then Slack, which the library has and the main site does not.
-const social = [['https://www.linkedin.com/company/calcompute/', 'LinkedIn'], ['https://x.com/CalCompute', 'X'], ['https://github.com/CalCompute', 'GitHub'], ['mailto:team@CaliforniaCompute.org', 'Email'], [SLACK, 'Slack']];
+// The footer's icon row, CaliforniaCompute.org's (its Footer.astro): [href, label, SVG path or image]. Its marks are inline
+// SVG paths in currentColor; Slack and Drive keep their own colours.
+const social = [
+  ['https://www.linkedin.com/company/calcompute/', 'CalCompute on LinkedIn', 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z'],
+  ['https://x.com/CalCompute', 'CalCompute on X', 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.91-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z'],
+  ['https://github.com/CalCompute', 'CalCompute on GitHub', 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'],
+  [SLACK, 'CalCompute on Slack', '/images/apps/slack.svg'],
+  [folderUrl(m, 'CalCompute Library') ?? '/library/', "CalCompute's research on Google Drive", '/images/apps/google-drive.svg'],
+  ['mailto:team@CaliforniaCompute.org', 'Email CalCompute', 'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z'],
+];
 const here = Astro.url.pathname;
-// The service's logo beside each footer link that goes to it (the GitHub, LinkedIn and X marks are black; inverted on the navy footer).
+// The service's logo beside each footer link that goes to it (the GitHub, X and email marks are black, inverted on the navy footer; LinkedIn is in its own blue).
 const logoOf = (href) => (href === SLACK ? '/images/apps/slack.svg' : /github\.com|#github$/.test(href) ? '/images/apps/github.svg'
-  : /drive\.google\.com|#drive$/.test(href) ? '/images/apps/google-drive.svg' : /linkedin\.com/.test(href) ? '/images/apps/linkedin.svg'
-  : /\/\/x\.com/.test(href) ? '/images/apps/x.svg' : null);
+  : /drive\.google\.com/.test(href) ? '/images/apps/google-drive.svg' : /linkedin\.com/.test(href) ? '/images/apps/linkedin.svg'
+  : /\/\/x\.com/.test(href) ? '/images/apps/x.svg' : href.startsWith('mailto:') ? '/images/apps/email.svg' : null);
 const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.replace(/a\/$/, '')));
 ---
 <!doctype html>
@@ -33,8 +41,8 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     {redirect && <meta http-equiv="refresh" content={`0; url=${redirect}`} />}
     <title>{title ? `${title} · CalCompute Research Library` : 'CalCompute Research Library'}</title>
-    <link rel="icon" href="/favicons/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/favicons/favicon.ico" sizes="48x48" />
+    <!-- The favicons are CaliforniaCompute.org's, files and tags (its BaseLayout.astro); the explorer has the same tags. -->
+    <link rel="icon" href="/favicons/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
     <link rel="apple-touch-icon" href="/favicons/apple-touch-icon.png" />
@@ -42,23 +50,39 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
     <meta name="theme-color" content="#72cdf4" />
   </head>
   <body>
+    <!-- The same frame as CaliforniaCompute.org's header: 1280px, 16px gutter, the wordmark on the left gutter,
+         then links, search and the shared "Take the survey" button (.nav-cta), with a menu below 1025px. -->
     <header class="fixed top-0 inset-x-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
-      <div class="max-w-[1200px] mx-auto px-6 h-16 flex items-center gap-4">
-        <a href="/" class="shrink-0 flex items-center gap-2" aria-label="CalCompute Research Library, home">
-          <img src="/images/brand/calcompute-wordmark-sticker.svg" alt="CalCompute" height="36" width="161" class="h-9 w-auto" />
-          <span class="text-xs uppercase tracking-wide text-gray-400">research</span>
-        </a>
-        <nav class="ml-auto min-w-0 overflow-x-auto overflow-y-hidden">
-          <ul class="flex justify-end-safe gap-1 text-sm whitespace-nowrap">
+      <div class="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3 sm:gap-4">
+        <!-- The wordmark goes to CaliforniaCompute.org; "research" is this site's home link. -->
+        <div class="shrink-0 flex items-center gap-2">
+          <a href="https://californiacompute.org/"><img src="/images/brand/calcompute-wordmark-sticker.svg" alt="CalCompute" height="36" width="161" class="h-9 w-auto" /></a>
+          <a href="/" class="text-xs uppercase tracking-wide text-gray-400 hover:text-gray-600" aria-label="CalCompute Research Library, home">research</a>
+        </div>
+        <nav class="ml-auto max-[1024px]:hidden">
+          <ul class="flex gap-1 text-sm whitespace-nowrap">
             {nav.map(([href, label]) => (
               <li><a href={href} class={`block px-2 py-1 rounded ${active(href) ? 'bg-uc-blue-dark text-white' : 'text-gray-600 hover:text-gray-900'}`}>{label}</a></li>
             ))}
           </ul>
         </nav>
-        <a href="#suggest" class="shrink-0 text-sm btn whitespace-nowrap">Suggest or correct</a>
-        <a id="search-open" href="/search/" class="text-sm border border-gray-300 rounded-md px-2.5 py-1 text-gray-600 hover:text-gray-900 whitespace-nowrap" aria-label="Search" aria-keyshortcuts="Control+K Meta+K">
-          Search <kbd class="text-xs text-gray-400">⌘K</kbd>
+        <a id="search-open" href="/search/" class="max-[1024px]:ml-auto nav-search shrink-0 inline-flex items-center gap-1.5 text-sm border border-gray-300 rounded pl-2 pr-3 max-sm:px-2.5 text-gray-600 hover:text-gray-900 whitespace-nowrap">
+          <svg aria-hidden="true" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="7" cy="7" r="5" /><path d="m11 11 3.5 3.5" /></svg><span class="max-sm:sr-only">Search</span>
         </a>
+        <a href="https://californiacompute.org/get-involved/" class="nav-cta max-[1024px]:hidden">Take the survey</a>
+        <details id="menu" class="min-[1025px]:hidden">
+          <summary class="list-none cursor-pointer p-2 -mr-2 rounded text-gray-600 hover:text-gray-900 [&::-webkit-details-marker]:hidden" aria-label="Menu">
+            <svg aria-hidden="true" viewBox="0 0 22 16" width="22" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 2h20M1 8h20M1 14h20" /></svg>
+          </summary>
+          <div class="absolute inset-x-0 top-16 bg-white border-b border-gray-200 shadow-lg">
+            <ul class="max-w-7xl mx-auto px-4 py-2">
+              {nav.map(([href, label]) => (
+                <li><a href={href} class={`block py-2.5 ${active(href) ? 'font-medium text-uc-blue-dark' : 'text-gray-700 hover:text-gray-900'}`}>{label}</a></li>
+              ))}
+              <li class="py-3 border-t border-gray-200 mt-2"><a href="https://californiacompute.org/get-involved/" class="nav-cta">Take the survey</a></li>
+            </ul>
+          </div>
+        </details>
       </div>
     </header>
 
@@ -72,34 +96,47 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
       <p class="px-4 py-2 text-xs text-gray-500 border-t border-gray-200">↑ ↓ choose a page · Enter searches everything, with exact title matches first · <code>kind:source</code> and other filters work there · Esc closes</p>
     </dialog>
 
-    <main class={bare ? 'pt-16' : `pt-22 pb-16 px-4 ${wide ? 'max-w-7xl' : 'max-w-6xl'} mx-auto`}>
+    <main class={bare ? 'pt-16' : 'pt-22 pb-16 px-4 max-w-7xl mx-auto'}>
       <slot />
     </main>
 
     {showFooter && <footer class="bg-uc-navy text-gray-300">
-      <div class="max-w-[1200px] mx-auto px-6 pt-10 pb-8 grid gap-8 sm:grid-cols-[2fr_1fr_1fr_1fr]">
-        <div>
-          <a href="/" aria-label="CalCompute Research Library, home" class="inline-flex items-center gap-2">
-            <img src="/images/brand/calcompute-icon-white.svg" alt="" width="40" height="40" class="h-10 w-auto" />
-            <img src="/images/brand/calcompute-lettering-white.svg" alt="CalCompute" width="167" height="40" class="h-10 w-auto" />
+      <!-- The same skeleton as CaliforniaCompute.org's footer: brand block (mark, tagline, sign-up, socials), link columns, rule, legal row.
+           Below 1025px, as there, the link columns come first in a wrapping row and the brand block spans the row under them. -->
+      <div class="max-w-7xl mx-auto px-4 pt-16 pb-10 flex flex-wrap gap-8 min-[1025px]:grid min-[1025px]:gap-10 min-[1025px]:grid-cols-[2fr_1fr_1fr_1fr]">
+        <!-- The first column is CaliforniaCompute.org's, value for value (.fb in global.css). -->
+        <div class="fb basis-full order-last min-[1025px]:order-none">
+          <a href="https://californiacompute.org/" class="fb-mark" aria-label="CaliforniaCompute.org home">
+            <img src="/images/brand/calcompute-icon-white.svg" alt="" width="512" height="512" decoding="async" />
+            <span aria-hidden="true"></span>
           </a>
-          <p class="mt-3 text-sm text-gray-300">California's Public AI Cloud</p>
-          <ul class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            {social.map(([href, label]) => <li><a class="hover:text-white inline-flex items-center gap-1.5" href={href} {...(href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>{logoOf(href) && <img src={logoOf(href)} alt="" class={`h-3.5 w-auto ${/github|linkedin|\/x\.svg/.test(logoOf(href)) ? 'invert' : ''}`} />}{label}</a></li>)}
-          </ul>
-          <div class="mt-6 max-w-sm"><NewsletterForm dark /></div>
+          <p class="fb-tagline">California's Public AI Cloud</p>
+          <NewsletterForm dark />
+          <div class="fb-social">
+            <div>
+              {social.map(([href, label, icon]) => (
+                <a href={href} aria-label={label} {...(href.startsWith('http') ? { rel: 'noopener noreferrer', target: '_blank' } : {})}>
+                  {icon.startsWith('/') ? <img src={icon} alt="" width="20" height="20" /> : <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={icon} /></svg>}
+                </a>
+              ))}
+            </div>
+            <div>
+              <img src="/images/flag-ca.svg" alt="Flag of California" />
+              <img src="/images/flag-us.svg" alt="Flag of the United States" />
+            </div>
+          </div>
         </div>
         {footer.map(([title, links]) => (
-          <div>
+          <div class="flex-[1_1_8rem]">
             <h2 class="text-sm font-medium text-white mb-3">{title}</h2>
             <ul class="space-y-1.5 text-sm">
-              {links.map(([href, label]) => <li><a class="hover:text-white inline-flex items-center gap-1.5" href={href} {...(href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>{logoOf(href) && <img src={logoOf(href)} alt="" class={`h-3.5 w-auto ${/github|linkedin|\/x\.svg/.test(logoOf(href)) ? 'invert' : ''}`} />}{label}</a></li>)}
+              {links.map(([href, label]) => <li><a class="hover:text-white inline-flex items-center gap-1.5" href={href} {...(href.startsWith('http') ? { rel: 'noopener', target: '_blank' } : {})}>{logoOf(href) && <img src={logoOf(href)} alt="" class={`h-3.5 w-auto ${/github|\/x\.svg|email/.test(logoOf(href)) ? 'invert' : ''}`} />}{label}</a></li>)}
             </ul>
           </div>
         ))}
       </div>
       <hr class="border-uc-blue-light/30" />
-      <div class="max-w-[1200px] mx-auto px-6 py-6 flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-400">
+      <div class="max-w-7xl mx-auto px-4 pt-6 pb-8 flex flex-col sm:flex-row sm:justify-between gap-2 text-xs text-gray-400">
         <p>© {new Date().getFullYear()} CalCompute</p>
         <p>This library is a tool to navigate and explore the research. The consortium does not use AI to write the CalCompute Framework Report.</p>
       </div>
@@ -157,8 +194,12 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
         }
       });
       document.getElementById('search-open')!.addEventListener('click', (e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); open(); });
-      addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); open(); } });
       dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+
+      // The small-screen menu is a <details>; close it on Escape and on a click outside it.
+      const menu = document.getElementById('menu') as HTMLDetailsElement;
+      addEventListener('keydown', (e) => { if (e.key === 'Escape' && menu.open) { menu.open = false; menu.querySelector('summary')!.focus(); } });
+      addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target as Node)) menu.open = false; });
 
     </script>
   </body>

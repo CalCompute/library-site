@@ -206,3 +206,24 @@ test('every PDF has a committed cover (npm run covers)', () => {
   assert.ok(covers.length >= 30);
   for (const c of covers) assert.ok(fs.existsSync(path.join('public', c)), `missing ${c}: run npm run covers`);
 });
+
+test('the research institutions view: every row a record with a designation, a region and a page, its pin on the map', async () => {
+  const { institutionRecords, DESIGNATIONS, pinAt } = await import('./directory.js');
+  const map = JSON.parse(fs.readFileSync(new URL('../data/ca-regions.json', import.meta.url), 'utf8'));
+  const rel = 'wiki/directories/California research institutions.md';
+  const m = { byRel: new Map([[rel, { rel, body: fs.readFileSync(path.join(WIKI, rel), 'utf8') }]]) };
+  const recs = institutionRecords(m, map);
+  assert.equal(recs.length, 57);
+  for (const r of recs) {
+    assert.ok(DESIGNATIONS.includes(r.kind), `${r.name}: ${r.kind}`);
+    assert.ok(r.regions.length, `${r.name} has no region`);
+    assert.match(r.page ?? '', /^\/wiki\/entities\/[^/]+\/$/, r.name);
+  }
+  const placed = recs.filter((r) => r.x !== null);
+  assert.ok(placed.length >= 54, `${placed.length} of 57 have a pin`);
+  for (const r of placed) assert.ok(r.x >= 0 && r.x <= map.width && r.y >= 0 && r.y <= map.height, `${r.name} is off the map`);
+  // The projection lands a known place in its own region: UC Berkeley's campus sits in the Bay Area's drawing.
+  const [x, y] = pinAt(map.proj, 37.8719, -122.2585), bay = map.regions.find((g) => g.name === 'Bay Area');
+  const nums = bay.d.match(/-?\d+(\.\d+)?/g).map(Number), xs = nums.filter((_, i) => i % 2 === 0), ys = nums.filter((_, i) => i % 2);
+  assert.ok(x > Math.min(...xs) && x < Math.max(...xs) && y > Math.min(...ys) && y < Math.max(...ys));
+});

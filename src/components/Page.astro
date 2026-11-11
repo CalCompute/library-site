@@ -133,7 +133,8 @@ const meta = Object.entries({
     </div>
     {local.nodes.length > 1 && (
       <div class="card p-2">
-        <GraphView data={local} variant="classic" focusNodeId={page.route} labels height={360} filters={false} catalog={false} legend={false} client:visible />
+        <!-- Below lg the graph is a picture: touch passes through to the page; /graph/ is the interactive one. -->
+        <div class="max-lg:pointer-events-none"><GraphView data={local} variant="classic" focusNodeId={page.route} labels height={360} filters={false} catalog={false} legend={false} client:visible /></div>
         {member && <p class="px-2 pb-1 text-right text-sm" data-pagefind-ignore><a class="underline text-uc-blue-dark" href={`/graph/#${page.route}`}>Open in the full graph</a></p>}
       </div>
     )}
@@ -162,9 +163,9 @@ const meta = Object.entries({
   )}
   <div class="min-w-0 flex-1" data-pagefind-body data-pagefind-filter={`section:${page.tree}`}>
     <article class={`article-prose max-w-3xl ${hideH1 ? '[&>h1:first-child]:hidden' : ''}`}><Content /></article>
-    <p class="mt-6 flex flex-wrap gap-2" data-pagefind-ignore>
-      {element && <a class="btn" href="#suggest" data-element={element}>Suggest reading for element {element}</a>}
-      <a class="btn" href="#suggest" data-kind="correction" data-about={page.title}>Suggest a correction to this page</a>
+    <p class="mt-6 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 [&>a]:underline" data-pagefind-ignore>
+      {element && <a href="#suggest" data-element={element}>Suggest reading for element {element}</a>}
+      <a href="#suggest" data-kind="correction" data-about={page.title}>Suggest a change to this page</a>
     </p>
     <p class="mt-10 text-xs text-gray-500" data-pagefind-ignore>Source file: <code>{page.rel}</code>{page.data.updated && <>, updated {day(page.data.updated)}</>}.</p>
   </div>

@@ -1,0 +1,74 @@
+---
+// The Landscape: the library's directory pages as records (components/Directory.jsx), a map of the 13 Jobs First
+// regions with filters, cards and a detail panel. Its third view, "Funding and policy", is the federal and state
+// programs page as cards. Its fourth, "Research institutions", is the research institutions page on the same map with
+// a pin for each institution. All are read from ../library-wiki as written; nothing is added here. lib/directory.js
+// builds the records. The first view's records are also CaliforniaCompute.org's California Compute Directory, the
+// service that helps a visitor find a program to use (pages/directory.json.ts).
+const SERVICE = 'https://californiacompute.org/directory/';
+import Layout from '../../layouts/Layout.astro';
+import Directory from '../../components/Directory.jsx';
+import map from '../../data/ca-regions.json';
+import { load } from '../../lib/load.js';
+import { directoryRecords, programRecords, institutionRecords, directoryPage, programsPage, institutionsPage, directorySources, USABLE, DESIGNATIONS } from '../../lib/directory.js';
+
+export const getStaticPaths = () => [{ params: { tab: undefined } }, { params: { tab: 'research' } }, { params: { tab: 'programs' } }, { params: { tab: 'institutions' } }];
+const m = await load();
+const tab = Astro.params.tab ?? 'usable';
+const pages = { usable: directoryPage(m), research: directoryPage(m), programs: programsPage(m), institutions: institutionsPage(m) };
+const records = directoryRecords(m), programs = programRecords(m), institutions = institutionRecords(m, map);
+// What a visitor can use leads; the research projects and the organizations are the second view.
+const usable = records.filter((r) => USABLE.includes(r.kind)), research = records.filter((r) => !USABLE.includes(r.kind));
+const tabs = [['usable', '/directory/', 'Programs and resources', usable.length], ['research', '/directory/research/', 'Research projects and organizations', research.length], ['programs', '/directory/programs/', 'Funding and policy', programs.length], ['institutions', '/directory/institutions/', 'Research institutions', institutions.length]];
+const checked = records.map((r) => r.checked).sort().at(-1);
+const placed = new Set(usable.flatMap((r) => r.regions).filter((g) => map.regions.some((x) => x.name === g))).size;
+const sources = directorySources(m);
+const playbook = m.pages.find((p) => p.rel.startsWith('wiki/sources/CJF Investment Playbook'));
+// The institutions' sources, named in the About section: Carnegie for the list, NCES for the places.
+const sourceOf = (start) => m.pages.find((p) => p.rel.startsWith(`wiki/sources/${start}`));
+const carnegie = sourceOf('Carnegie 2025 Public Data File'), nces = m.pages.find((p) => p.rel.startsWith('wiki/sources/') && /IPEDS|NCES/.test(p.rel));
+const page = pages[tab];
+---
+<Layout title="California Compute Landscape" description="The AI compute, data and training programs, research projects and research institutions of California, by region, with the public source for every record.">
+  <header class="mb-5">
+    <p class="font-mono text-[11px] uppercase tracking-[0.18em] text-uc-blue-dark mb-1">CalCompute research · Landscape</p>
+    <h1 class="text-3xl sm:text-4xl font-bold text-uc-navy tracking-tight mb-2">California Compute Landscape</h1>
+    <p class="text-gray-700 max-w-prose">The AI compute, data and training programs, research projects and research institutions of California, by region. Other organizations run everything listed here. Each record reports what its public sources say. To find a program that you can use, go to the <a class="underline" href={SERVICE}>California Compute Directory</a> on CaliforniaCompute.org.</p>
+    <dl class="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+      {[[usable.length, 'programs and resources'], [`${placed} of ${map.regions.length}`, 'regions with one'], [sources, 'public sources cited'], [checked, 'last checked']].filter(([v]) => v).map(([v, label]) => (
+        <div><dt class="sr-only">{label}</dt><dd><b class="text-lg font-bold text-uc-navy">{v}</b> <span class="text-gray-500">{label}</span></dd></div>
+      ))}
+    </dl>
+  </header>
+  <nav class="flex gap-1 border-b border-gray-200 mb-5" aria-label="Landscape views">
+    {tabs.map(([k, href, label, n]) => (
+      <a href={href} aria-current={k === tab ? 'page' : undefined}
+        class={`px-3 py-2 text-sm -mb-px border-b-2 ${k === tab ? 'border-uc-blue-dark text-uc-navy font-semibold' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
+        {label} <span class="font-mono text-xs text-gray-400 font-normal">{n}</span>
+      </a>
+    ))}
+  </nav>
+  {tab === 'usable' && <Directory items={usable} map={map} noun="program or resource" client:load />}
+  {tab === 'research' && <Directory items={research} map={map} client:load />}
+  {tab === 'programs' && <Directory items={programs} noun="program" client:load />}
+  {tab === 'institutions' && (
+    <>
+      <aside class="card mb-5 flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5" aria-labelledby="dir-here">
+        <div class="max-w-prose">
+          <h2 id="dir-here" class="text-lg font-bold text-uc-navy">Do you work here?</h2>
+          <p class="text-sm text-gray-700">If you use or manage computing at one of these institutions, the landscape survey asks what you have and what you need.</p>
+        </div>
+        <a class="btn btn-primary" href="https://californiacompute.org/get-involved/">Take the survey</a>
+      </aside>
+      <Directory items={institutions} map={map} noun="institution" kinds={DESIGNATIONS} pins
+        facets={[['region', 'Region'], ['kind', 'Designation'], ['domain', 'Control']]} client:load />
+    </>
+  )}
+  <section class="mt-10 border-t border-gray-200 pt-6 text-sm text-gray-600 max-w-prose" aria-labelledby="dir-about">
+    <h2 id="dir-about" class="text-base font-bold text-uc-navy mb-2">About these records</h2>
+    <p class="mb-2">A record enters the Landscape only when a public source in the <a class="underline" href="/library/">Research Library</a> describes it. Each record states what its sources say and links to them. The Landscape does not rate or rank a record, and it is not a position of the CalCompute consortium. The <a class="underline" href={SERVICE}>California Compute Directory</a> shows the programs and resources to visitors, from the same records.</p>
+    <p class="mb-2">Regions are California's 13 Jobs First regions. The map draws them from county boundaries of the U.S. Census Bureau, with the county lists of the state's {playbook ? <a class="underline" href={playbook.route}>California Jobs First Investment Playbook</a> : 'California Jobs First Investment Playbook'}. A record has a region only when its sources name a place in that region.</p>
+    {tab === 'institutions' && <p class="mb-2">Research institutions are California's colleges and universities with a 2025 research designation in the {carnegie ? <a class="underline" href={carnegie.route}>Carnegie Classification</a> : 'Carnegie Classification'}, and the three Department of Energy national laboratories in the state. Pins are placed by the coordinates of {nces ? <a class="underline" href={nces.route}>the federal record</a> : 'a federal record'} each row cites; an institution with none has a card and no pin. Each institution has its own page in the library.</p>}
+    <p>If a program is missing or a record is wrong, <a class="underline" href="#suggest" data-kind="correction" data-about="Landscape">send a correction</a>. {page && <>The same records are in <a class="underline" href={page.route}>one table</a> in the library.</>}</p>
+  </section>
+</Layout>

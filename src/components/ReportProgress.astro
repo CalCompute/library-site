@@ -1,15 +1,18 @@
 ---
 // The Framework Report bar: how far it is from SB-53's signing (Sept. 29, 2025) to the report's due date (Jan. 1, 2027).
-// No label, no dates, no percent; a shimmer runs along the fill as on the graph's Report (the user's calls, Nov. 6, 2026).
+// No label and no dates, but the percent beside it (the user's calls, Nov. 6 and 9, 2026); a shimmer runs along the fill
+// as on the graph's Report.
 // CaliforniaCompute.org shows the same bar, labelled. Built at the build date; the script moves it to today. The fill
-// grows from empty when the bar comes into view, held by the script until then (without JS it fills on load).
+// grows from empty when the bar comes into view, held by the script until then (without JS it fills on load). The
+// percent counts up with it, read from the fill's width each frame, so the two stay together.
 const START = Date.parse('2025-09-29'), END = Date.parse('2027-01-01');
 const pct = Math.min(100, Math.max(0, Math.floor((100 * (Date.now() - START)) / (END - START))));
 ---
-<div class="max-w-sm" data-report-progress data-start={START} data-end={END}>
-  <div class="h-2 rounded-full bg-uc-blue-light overflow-hidden" role="progressbar" aria-label="Framework Report" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
+<div class="max-w-sm flex items-center gap-2" data-report-progress data-start={START} data-end={END}>
+  <div class="flex-1 h-2 rounded-full bg-uc-blue-light overflow-hidden" role="progressbar" aria-label="Framework Report" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}>
     <div class="shimmer relative h-full rounded-full bg-uc-blue overflow-hidden" style={`width: ${pct}%`} data-fill></div>
   </div>
+  <span class="text-xs font-medium text-uc-navy tabular-nums" aria-hidden="true" data-pct>{pct}%</span>
 </div>
 <style>
   [data-fill] {
@@ -39,8 +42,19 @@ const pct = Math.min(100, Math.max(0, Math.floor((100 * (Date.now() - START)) / 
   }
 </style>
 <script>
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Count the percent up as the fill grows (report-progress-in, 1.2 s), then settle on the exact value.
+  const count = (el: HTMLElement) => {
+    const track = el.querySelector<HTMLElement>('[role=progressbar]')!, fill = el.querySelector<HTMLElement>('[data-fill]')!;
+    const label = el.querySelector<HTMLElement>('[data-pct]')!, pct = track.getAttribute('aria-valuenow'), t0 = performance.now();
+    const frame = (t: number) => {
+      label.textContent = `${Math.round((100 * fill.getBoundingClientRect().width) / track.getBoundingClientRect().width)}%`;
+      if (t - t0 < 1300) requestAnimationFrame(frame); else label.textContent = `${pct}%`;
+    };
+    requestAnimationFrame(frame);
+  };
   const io = new IntersectionObserver((entries) => {
-    for (const e of entries) if (e.isIntersecting) { e.target.classList.remove('wait'); io.unobserve(e.target); }
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.remove('wait'); if (!still) count(e.target as HTMLElement); io.unobserve(e.target); }
   }, { threshold: 0.5 });
   for (const el of document.querySelectorAll<HTMLElement>('[data-report-progress]')) {
     el.classList.add('wait');
@@ -49,5 +63,6 @@ const pct = Math.min(100, Math.max(0, Math.floor((100 * (Date.now() - START)) / 
     const pct = Math.min(100, Math.max(0, Math.floor((100 * (Date.now() - start)) / (end - start))));
     el.querySelector<HTMLElement>('[data-fill]')!.style.width = `${pct}%`;
     el.querySelector('[role=progressbar]')!.setAttribute('aria-valuenow', String(pct));
+    el.querySelector('[data-pct]')!.textContent = still ? `${pct}%` : '0%';
   }
 </script>

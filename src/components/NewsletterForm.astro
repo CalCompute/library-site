@@ -1,20 +1,21 @@
 ---
 // The newsletter sign-up: one email address, stored for later (src/worker.js). Nothing is sent yet.
-// In the footer of every page; the explorer's footer carries a copy (index.html).
-const { dark = false } = Astro.props;
+// In the footer of every page and under the homepage hero; the explorer's footer carries a copy (index.html).
+// id names the email field, so two forms on one page need two. dark is the footer's: it takes no classes of its own
+// and is styled by .fb in global.css, as CaliforniaCompute.org's footer form.
+const { dark = false, id = 'newsletter-email' } = Astro.props;
 ---
 <form class="newsletter" data-newsletter novalidate>
-  <label class={`block text-sm font-medium ${dark ? 'text-white' : ''}`} for="newsletter-email">Follow the Framework Report</label>
-  <p class={`text-xs ${dark ? 'text-gray-400' : 'text-gray-500'}`}>Occasional email on the Consortium's progress. Nothing else.</p>
-  <div class="mt-2 flex gap-2">
-    <input id="newsletter-email" name="email" type="email" required autocomplete="email" maxlength="254" placeholder="you@example.edu"
-      class={`min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-sm ${dark ? 'bg-white/10 text-white placeholder:text-gray-400 border border-white/30' : 'border border-gray-300'}`} />
-    <button type="submit" class={`btn py-1 text-sm ${dark ? 'border-white text-white hover:bg-white hover:text-uc-navy' : 'btn-primary'}`}>Subscribe</button>
+  <label class={dark ? null : 'block text-sm font-medium'} for={id}>Follow the Research</label>
+  <div class={dark ? 'newsletter-row' : 'mt-2 flex gap-2'}>
+    <input id={id} name="email" type="email" required autocomplete="email" maxlength="254" placeholder="you@example.edu"
+      class={dark ? null : 'min-w-0 flex-1 rounded-md px-2.5 py-1.5 text-sm border border-gray-300'} />
+    <button type="submit" class={dark ? null : 'btn btn-primary py-1 text-sm'}>Subscribe</button>
   </div>
   <label class="hidden" aria-hidden="true">Leave this empty <input name="website" tabindex="-1" autocomplete="off" /></label>
   <input type="hidden" name="page" />
   <div data-turnstile></div>
-  <p data-status aria-live="polite" class={`mt-1 text-xs ${dark ? 'text-gray-300' : 'text-gray-600'}`}></p>
+  <p data-status aria-live="polite" class={dark ? null : 'mt-1 text-xs text-gray-600'}></p>
 </form>
 
 <script>

@@ -1,18 +1,65 @@
 ---
 // One element's shelf: the PDF sources on its reading list by their first page, most recently added first (load.js
 // shelves). On /library/ and on the element's own page. Place it in the page's full text width: it runs out to both
-// edges of the screen from there.
-const { shelf, heading } = Astro.props;
+// edges of the screen from there. `href` (the home page: the public Google Drive) makes the heading a link there, with the Drive logo. Each cover is labelled with its title and element letters; `filter` (the home page's
+// shelf) adds a row of element chips that narrows the shelf to one element. A book with no cover (load.js `more`:
+// mostly web pages) is a text card: title, website, summary. The cards sit under the covers in the same section, as two
+// rows that scroll sideways; `more` adds a second list of books (the home page: every source with no cover).
+// `suggest` puts a "Suggest research" button on the heading row: the suggest form (SuggestDialog.astro), set to a source.
+const { shelf, heading, href, filter = false, more, suggest = false } = Astro.props;
+const all = [...(shelf?.books ?? []), ...(more?.books ?? [])];
+const covers = all.filter((b) => b.cover), cards = all.filter((b) => !b.cover);
+const letters = [...new Set(all.flatMap((b) => b.elements ?? []))].sort();
 ---
-{shelf?.books.length > 0 && (
-  <section class="shelf-wrap mb-8" data-pagefind-ignore>
-    <h3 class="text-base font-semibold mb-2">{heading ?? <a class="hover:underline" href={shelf.hub.route}>{shelf.hub.title}</a>}<span class="ml-1.5 text-sm font-normal text-gray-500">{shelf.books.length}</span></h3>
-    <div class="shelf pt-2 border-b-4 border-stone-300">
-      {shelf.books.map((b) => (
-        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} class="transition-transform hover:-translate-y-1">
-          <img src={b.cover} alt={b.title} loading="lazy" width="320" height="414" class="h-44 w-auto rounded-sm border border-gray-200 shadow-md" />
+{all.length > 0 && (
+  <section class="shelf-wrap mb-8" data-pagefind-ignore data-shelf>
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <h3 class="text-base font-semibold">{href
+        ? <a class="inline-flex items-center gap-1.5 hover:underline" href={href} target="_blank" rel="noopener"><img src="/images/apps/google-drive.svg" alt="" class="h-4 w-auto" />{heading} ↗</a>
+        : heading ?? <a class="hover:underline" href={shelf.hub.route}>{shelf.hub.title}</a>}<span data-shelf-count class="ml-1.5 text-sm font-normal text-gray-500">{all.length}</span></h3>
+      {suggest && <a class="btn !py-1 !px-3 !text-sm" href="#suggest" data-kind="reading">Suggest research</a>}
+    </div>
+    {filter && letters.length > 0 && (
+      <div class="flex flex-wrap gap-1.5 mb-2">
+        <button class="chip" aria-pressed="true" data-shelf-filter="">All</button>
+        {letters.map((L) => <button class="chip" aria-pressed="false" data-shelf-filter={L}>{L}</button>)}
+      </div>
+    )}
+    {covers.length > 0 && <div class="shelf pt-2">
+      {covers.map((b) => (
+        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} data-elements={(b.elements ?? []).join(' ')} class="group w-[8.5rem] flex flex-col transition-transform hover:-translate-y-1">
+          <span class="h-44 flex items-end"><img src={b.cover} alt="" loading="lazy" width="320" height="414" class="max-h-full max-w-full w-auto h-auto rounded-sm border border-gray-200 shadow-md" /></span>
+          <span class="mt-1.5 text-xs leading-snug text-gray-700 line-clamp-2 group-hover:underline">{b.title}</span>
+          {b.elements?.length > 0 && <span class="mt-1 mb-2 flex flex-wrap gap-1">{b.elements.map((L) => <span class="chip !px-1.5 !py-0 !text-[0.65rem]">{L}</span>)}</span>}
         </a>
       ))}
-    </div>
+    </div>}
+    {cards.length > 0 && <div class="shelf shelf-rows pt-2 pb-2">
+      {cards.map((b) => (
+        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} data-elements={(b.elements ?? []).join(' ')} class="card group p-3 flex flex-col gap-1 transition-transform hover:-translate-y-1">
+          <span class="text-sm font-medium leading-snug line-clamp-2 group-hover:underline">{b.title}</span>
+          {b.host && <span class="text-xs text-gray-500 truncate flex items-center gap-1.5">{b.icon && <img src={b.icon} alt="" width="16" height="16" loading="lazy" class="h-4 w-4 shrink-0 rounded-sm" />}<span class="truncate">{b.host}</span></span>}
+          <span class="text-xs leading-snug text-gray-600 line-clamp-3">{b.summary}</span>
+          {b.elements?.length > 0 && <span class="mt-auto pt-1 flex flex-wrap gap-1">{b.elements.map((L) => <span class="chip !px-1.5 !py-0 !text-[0.65rem]">{L}</span>)}</span>}
+        </a>
+      ))}
+    </div>}
   </section>
 )}
+
+<script>
+  // The element filter: one letter at a time, or All. Without JS every cover shows.
+  for (const root of document.querySelectorAll<HTMLElement>('[data-shelf]')) {
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-shelf-filter]')];
+    const items = [...root.querySelectorAll<HTMLElement>('[data-elements]')];
+    const count = root.querySelector('[data-shelf-count]');
+    for (const b of buttons) b.addEventListener('click', () => {
+      const L = b.dataset.shelfFilter;
+      for (const x of buttons) x.setAttribute('aria-pressed', String(x === b));
+      let n = 0;
+      for (const i of items) { const on = !L || i.dataset.elements!.split(' ').includes(L); i.hidden = !on; n += +on; }
+      if (count) count.textContent = String(n);
+      for (const s of root.querySelectorAll('.shelf')) s.scrollLeft = 0;
+    });
+  }
+</script>

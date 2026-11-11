@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "test": "node --test src/lib/wiki.test.js",
     "covers": "node scripts/covers.mjs",
+    "favicons": "node scripts/favicons.mjs",
     "submissions": "node scripts/submissions.mjs",
     "subscribers": "node scripts/submissions.mjs subscribers"
   },

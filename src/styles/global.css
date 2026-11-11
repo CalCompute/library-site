@@ -87,16 +87,19 @@ body {
 /* A shelf (Shelf.astro) runs to both edges of the screen, so a cover is cut only there. .shelf-wrap spans the page's
    centred text column, so --gutter (the space beside that column, from the wrap's own width, 100cqw) lines the first
    cover up with the text, and a snapped cover rests there. No scrollbar: swipe, shift-scroll or tab through the
-   covers. 100vw counts a classic scrollbar; body clips the few pixels that adds. */
+   covers. 100vw counts a classic scrollbar; body clips the few pixels that adds. Each cover sits on the foot of a
+   box of one height (Shelf.astro), so every cover's bottom edge is level whatever its shape or label. */
 .shelf-wrap { container-type: inline-size; }
 .shelf {
   --gutter: calc((100vw - 100cqw) / 2);
   margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); scroll-padding-inline: var(--gutter);
-  display: flex; align-items: flex-end; gap: 1rem; overflow-x: auto; scroll-snap-type: x proximity;
+  display: flex; align-items: flex-start; gap: 1rem; overflow-x: auto; scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 .shelf::-webkit-scrollbar { display: none; }
 .shelf > * { flex-shrink: 0; scroll-snap-align: start; }
+/* Text cards (sources with no cover) in two rows that scroll sideways, filled column by column. */
+.shelf.shelf-rows { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: 17rem; align-items: stretch; gap: 0.75rem; }
 body:has(.shelf) { overflow-x: clip; }
 /* Marking rows done (DoneBar.astro): struck through, never hidden. */
 [data-done] .done-box + .cell { text-decoration: line-through; color: #6b7280; }
@@ -113,7 +116,39 @@ tr[id] { scroll-margin-top: 5rem; }
 .btn:hover { background: #bde3f6; }
 .btn-primary { background: #005581; color: white; }
 .btn-primary:hover { background: #1295d8; border-color: #1295d8; }
+/* The header's "Take the survey": the same button as CaliforniaCompute.org's header (its Button.astro primary, sm,
+   squared by .navbar__cta), value for value, so the two sites share it. Only the typeface is this site's.
+   In the components layer so Tailwind's `hidden` can still hide it. */
+@layer components {
+  .nav-cta { display: inline-flex; align-items: center; flex-shrink: 0; white-space: nowrap; line-height: 1; font-size: clamp(0.85rem, 0.82rem + 0.15vw, 0.9375rem); font-weight: 600; padding: 0.5rem 1rem; border: 2px solid #005581; border-radius: 4px; background: #005581; color: white; }
+  .nav-cta:focus-visible { outline: 3px solid #1295d8; outline-offset: 3px; }
+  /* The header's search button is exactly as tall as .nav-cta: its text, its padding and its border. */
+  .nav-search { height: calc(clamp(0.85rem, 0.82rem + 0.15vw, 0.9375rem) + 1rem + 4px); }
+}
 
 /* The "How it works" link beside a page's intro: an info icon button (user, Oct. 29, 2026). */
 .info-link { display: inline-flex; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; color: #6b7280; vertical-align: middle; }
 .info-link:hover, .info-link:focus-visible { color: #1295d8; background: #eaf6fc; }
+
+/* The footer's first column: CaliforniaCompute.org's (its Footer.astro and NewsletterForm.astro, footer variant), value
+   for value, so the two sites' footers open the same way. Only the typeface is this site's. The explorer's chrome.css
+   carries a copy; change all three together. */
+.fb { --fb-sm: clamp(0.85rem, 0.82rem + 0.15vw, 0.9375rem); display: flex; flex-direction: column; gap: 0.5rem; }
+.fb-mark { --mark: calc(clamp(1.25rem, 1.18rem + 0.35vw, 1.5rem) * 1.5); align-self: flex-start; display: inline-flex; align-items: center; gap: calc(var(--mark) * 60 / 453); color: #fff; transition: color 150ms ease; }
+.fb-mark img { display: block; height: calc(var(--mark) * 512 / 454); width: auto; }
+.fb-mark span { display: block; height: var(--mark); aspect-ratio: 1892 / 453; background: currentColor; -webkit-mask: url('/images/brand/calcompute-lettering-white.svg') center / contain no-repeat; mask: url('/images/brand/calcompute-lettering-white.svg') center / contain no-repeat; }
+.fb-mark:hover { color: #ffb511; }
+.fb-tagline { margin: 0; max-width: 36ch; font-size: var(--fb-sm); line-height: 1.75; color: rgba(255, 255, 255, 0.75); }
+.fb .newsletter { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; width: 100%; max-width: 28rem; }
+.fb .newsletter label[for] { font-size: var(--fb-sm); font-weight: 600; color: #fff; }
+.fb .newsletter-row { display: flex; gap: 0.5rem; align-items: center; }
+.fb .newsletter input[type='email'] { flex: 1; min-width: 0; font: inherit; font-size: var(--fb-sm); padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.1); color: #fff; }
+.fb .newsletter input[type='email']::placeholder { color: rgba(255, 255, 255, 0.55); }
+.fb .newsletter button { font: inherit; font-size: var(--fb-sm); font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; padding: 0.5rem 1rem; border-radius: 9999px; border: 2px solid rgba(255, 255, 255, 0.6); background: transparent; color: #fff; transition: background-color 150ms ease, border-color 150ms ease; }
+.fb .newsletter button:hover { background: rgba(255, 255, 255, 0.15); border-color: #fff; }
+.fb .newsletter [data-status] { margin: 0; min-height: 1.25em; font-size: var(--fb-sm); color: rgba(255, 255, 255, 0.75); }
+.fb-social { margin-top: 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+.fb-social > div { display: flex; align-items: center; gap: 0.75rem; }
+.fb-social a { display: flex; align-items: center; color: #bde3f6; transition: color 150ms ease; }
+.fb-social a:hover { color: #fff; }
+.fb-social svg, .fb-social img { min-width: 20px; height: 20px; width: auto; }

@@ -11,7 +11,7 @@ const lib = folderUrl(m, '/Library');
 const leg = folderUrl(m, '/Legislative Sources');
 const raw = ['legislative', 'web', 'shared'];
 ---
-<Layout title="Sources" wide description="Every source in the CalCompute Research Library, with filters by element, tier and origin.">
+<Layout title="Sources" description="Every source in the CalCompute Research Library, with filters by element, tier and origin.">
   <h1 class="text-3xl font-bold mb-2">Sources</h1>
   <p class="text-sm text-gray-600 mb-3">Every source page, from <a class="underline" href="/wiki/index/">the index</a>. Missing one? <a class="underline" href="#suggest">Suggest reading</a>.</p>
   <div class="flex flex-wrap gap-2 mb-6 text-sm">
@@ -22,6 +22,7 @@ const raw = ['legislative', 'web', 'shared'];
   <h2 class="text-xl font-bold mb-1">Shelves</h2>
   <p class="text-sm text-gray-600 mb-4">The PDF sources on each element's reading list, shown by their first page, the most recently added first.</p>
   {m.shelves.map((s) => <Shelf shelf={s} />)}
+  <Shelf shelf={m.more} heading="Sources with no cover" filter />
   <h2 class="text-xl font-bold mb-3">Sources</h2>
   <FilterTable hash headers={t.headers} rows={toRows(t, 'wiki/index.md', chips)} chips={chips} />
 </Layout>

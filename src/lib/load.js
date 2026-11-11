@@ -1,8 +1,9 @@
 // Build-time model of the library: every page, the link graph, and the tables the views read.
 // Computed once per build (module cache). Everything here is read from ../library-wiki as it is.
+import fs from 'node:fs';
 import path from 'node:path';
 import { getCollection } from 'astro:content';
-import { WIKI, files, routeOf, linksIn, parseTable, section, plain, flagsIn, readWiki, readJson, wikiCommit, driveHref, rendersHere, day, copyOf, outsideUrl, coverOf, remoteCoverOf, remotePdfSources } from './wiki.js';
+import { WIKI, files, routeOf, linksIn, parseTable, section, plain, flagsIn, readWiki, readJson, wikiCommit, driveHref, rendersHere, day, copyOf, outsideUrl, coverOf, remoteCoverOf, remotePdfSources, hostOf, faviconOf } from './wiki.js';
 import { photoFor, markForEntity } from './brand.js';
 import { todayPT } from './calendar.js';
 
@@ -133,18 +134,31 @@ export async function load() {
   const pdfByCopy = new Map([...files].filter((f) => /\.pdf$/i.test(f)).map((f) => [copyOf(f), f]));
   const remote = new Map(remotePdfSources().map((s) => [s.rel, s.url]));
   // A cover and where it opens: the original in the Drive or at its publisher (outsideUrl), or an online-only PDF's url.
-  const coverFor = (r) => { const pdf = pdfByCopy.get(evidenceOf({ linksOut }, r)); return pdf ? { src: coverOf(pdf), href: outsideUrl(pdf) } : remote.has(r) ? { src: remoteCoverOf(r), href: remote.get(r) } : null; };
+  // A cover not yet rendered (npm run covers; a publisher can refuse the fetch) is no cover: the source stays off the shelves.
+  const made = (c) => (c && fs.existsSync(path.join('public', c.src)) ? c : null);
+  const coverFor = (r) => { const pdf = pdfByCopy.get(evidenceOf({ linksOut }, r)); return made(pdf ? { src: coverOf(pdf), href: outsideUrl(pdf) } : remote.has(r) ? { src: remoteCoverOf(r), href: remote.get(r) } : null); };
   // Every page that shows a cover (Page.astro): each source page with a PDF, and each PDF's Markdown copy.
-  const covers = new Map([...pdfByCopy].filter(([copy]) => copy).map(([copy, pdf]) => [copy, { src: coverOf(pdf), href: outsideUrl(pdf) }]));
+  const covers = new Map([...pdfByCopy].filter(([copy, pdf]) => copy && made({ src: coverOf(pdf) })).map(([copy, pdf]) => [copy, { src: coverOf(pdf), href: outsideUrl(pdf) }]));
   for (const p of pages) if (p.data.type === 'source' && coverFor(p.rel)) covers.set(p.rel, coverFor(p.rel));
   // When the team surfaced a source (user, Nov. 6, 2026): its page's `created`, which the seed carried over from the
   // research wiki, or the date its evidence file is named with when that is earlier (sources shared before that wiki began).
   const addedOf = (r) => [day(byRel.get(r).data.created), path.posix.basename(evidenceOf({ linksOut }, r) ?? '').match(/^\d{4}-\d\d-\d\d/)?.[0]].filter(Boolean).sort()[0] ?? '';
+  // Its element letters, from its `elements` (a list or a comma string), for the shelf's labels and filter.
+  const lettersOf = (r) => { const v = byRel.get(r).data.elements; return [...new Set((Array.isArray(v) ? v : String(v ?? '').split(','))
+    .map((x) => String(x).trim()).filter((x) => /^[A-G]$/.test(x)))].sort(); };
   // Most recent first; a tie keeps the reading list's order.
-  const shelves = elements.filter((e) => e.hub).map((e) => ({ ...e, books: (linksOut.get(e.hub.rel) ?? [])
-    .filter((r) => r.startsWith('wiki/sources/') && coverFor(r))
-    .map((r) => ({ title: byRel.get(r).title, route: byRel.get(r).route, cover: coverFor(r).src, added: addedOf(r) }))
-    .sort((a, b) => b.added.localeCompare(a.added)) }));
+  const books = (rels) => rels.filter((r) => r.startsWith('wiki/sources/') && coverFor(r))
+    .map((r) => ({ title: byRel.get(r).title, route: byRel.get(r).route, cover: coverFor(r).src, added: addedOf(r), elements: lettersOf(r) }))
+    .sort((a, b) => b.added.localeCompare(a.added));
+  const shelves = elements.filter((e) => e.hub).map((e) => ({ ...e, books: books(linksOut.get(e.hub.rel) ?? []) }));
+  // The home page's shelf: every source with a cover, on any reading list or none. These lead it, in this order, ahead
+  // of the date order (user, Nov. 9, 2026): six by title, then every other WEF report. Each
+  // entry matches the start of a title; a renamed source falls back to its date.
+  const FRONT = ['CSET State of AI-Related Apprenticeships (web)', 'WEF Next-Generation Computing Framework 2026 (web)',
+    'Public AI Network 2024 white paper', 'UN Open Source Week 2025 Conference Report', 'UN OSET and UNDP 2024 DPI Safeguards',
+    'PEARC 2025 Empire AI model for provisioning AI and HPC', 'WEF '];
+  const rank = (b) => { const i = FRONT.findIndex((t) => b.title.startsWith(t)); return i < 0 ? FRONT.length : i; };
+  const shelf = { books: books(pages.map((p) => p.rel)).sort((a, b) => rank(a) - rank(b)) };
   const checklist = byRel.get('wiki/elements/Statutory requirements.md');
   const requirements = checklist ? parseTable(section(checklist.body, 'Checklist')) : { headers: [], rows: [] };
 
@@ -168,6 +182,13 @@ export async function load() {
     if (t) sourceInfo.set(t.target, { origin: plain(row.Origin), tier: plain(row.Tier), citable: plain(row.Citable ?? ''), summary: row.Summary, date: plain(row.Date) });
   }
 
+  // The home page's "More sources": every source with no cover (mostly web pages), as a text card, most recent first.
+  const more = { books: pages.filter((p) => p.rel.startsWith('wiki/sources/') && !coverFor(p.rel))
+    .map((p) => { const host = hostOf(p.data.url || p.data.fetched_url || p.data.sourceUrl);
+      return { title: p.title, route: p.route, host, icon: faviconOf(host),
+        summary: plain(sourceInfo.get(p.rel)?.summary ?? ''), added: addedOf(p.rel), elements: lettersOf(p.rel) }; })
+    .sort((a, b) => b.added.localeCompare(a.added)) };
+
   const flags = pages.filter((p) => p.tree === 'wiki').flatMap((p) => flagsIn(p.body).map((f) => ({ ...f, page: p })));
 
   // ---- log ----
@@ -186,14 +207,9 @@ export async function load() {
   const calendar = { today, items: (act.calendar ?? []).map((e) => ({ ...e,
     status: e.cancelled ? 'cancelled' : e.date < today ? 'held' : e.date === today ? 'today' : 'upcoming' })) };
 
-  // ---- hero counts: activity.json's, with every community sync held added to the person-hours ----
-  // No sync is transcribed, so the export cannot count them. Assume the whole consortium and operations team on each
-  // (user, Nov. 2, 2026): held syncs x their length x those members.
-  const hours = (t) => { const [h, mm] = t.split(':').map(Number); return h + mm / 60; };
-  const syncHours = calendar.items.filter((e) => e.track === 'sync' && e.status === 'held' && e.start && e.end)
-    .reduce((n, e) => n + hours(e.end) - hours(e.start), 0) * members.filter((x) => ['consortium', 'operations'].includes(x.group)).length;
-  const stats = (act.stats ?? []).map(([n, label]) => (label === 'person-hours on calls'
-    ? [n + Math.round(syncHours), label, 'Transcribed element calls, plus the consortium and operations team on every community sync held.'] : [n, label]));
+  // ---- hero counts: activity.json's contributors and sources only (user, Nov. 9, 2026). stats.json serves the same
+  // two to CaliforniaCompute.org's Framework section.
+  const stats = (act.stats ?? []).filter(([, label]) => ['contributors', 'sources'].includes(label));
 
   const fromWiki = unresolved.filter((u) => u.from.startsWith('wiki/'));
   console.log(`[wiki] ${pages.filter((p) => p.tree === 'wiki').length} wiki pages, ${pages.filter((p) => p.tree === 'raw').length} raw pages, ` +
@@ -202,7 +218,7 @@ export async function load() {
 
   cache = {
     pages, byRel, byRoute, byTitle, linksOut, linksIn: linksIn_, unresolved, graph, REPORT_ID, folders,
-    elements, shelves, covers, f1, checklist, requirements, members, groups, teamNames, entityFor, sourceInfo, sourcesTable, flags, status, meta,
+    elements, shelves, shelf, more, covers, f1, checklist, requirements, members, groups, teamNames, entityFor, sourceInfo, sourcesTable, flags, status, meta,
     activity: { ...act, stats }, calendar,
   };
   return cache;

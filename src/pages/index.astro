@@ -2,51 +2,117 @@
 // Landing page: the Framework Report is what the statute asks for; the graph of the library's sources is the picture.
 import Layout from '../layouts/Layout.astro';
 import GraphView from '../components/WikiGraph.jsx';
-import FileBrowser from '../components/FileBrowser.astro';
-import TeamRow from '../components/TeamRow.astro';
-import { driveTree, DRIVE_UI } from '../lib/drive.js';
-import { repoTree } from '../lib/github.js';
-import RepoBrowser from '../components/RepoBrowser.astro';
 import Social from '../components/Social.astro';
 import { load, folderUrl } from '../lib/load.js';
-import Calendar from '../components/Calendar.astro';
 import ReportProgress from '../components/ReportProgress.astro';
+import Shelf from '../components/Shelf.astro';
+import NewsletterForm from '../components/NewsletterForm.astro';
+import DirectoryTeaser from '../components/DirectoryTeaser.jsx';
+import regions from '../data/ca-regions.json';
+import { directoryRecords, programRecords, USABLE } from '../lib/directory.js';
 
 const m = await load();
-const s = m.status;
-// Hero stats: the consortium's research activity, as counts only, from library-wiki/activity.json.
-const stats = m.activity.stats ?? [];
-// Kunst Grotesk has no tabular figures (a 1 is 9 px wide, a 0 15.5 px at this size), so each digit sits in a cell as
-// wide as the widest digit, 0.645 em. The count-up script below renders the same way.
-const digits = (n) => n.toLocaleString('en-US').replace(/\d/g, '<span>$&</span>');
 const drive = folderUrl(m, 'CalCompute Library');
+// The public places to follow and join the work: the hero's buttons are the first three, the call to action at the foot of the page shows all six.
+const community = [
+  [drive ?? '/library/', 'Google Drive', 'google-drive'],
+  ['https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A', 'Slack', 'slack'],
+  ['https://github.com/CalCompute', 'GitHub', 'github'],
+  ['https://www.linkedin.com/company/calcompute/', 'LinkedIn', 'linkedin'],
+  ['https://x.com/CalCompute', 'X', 'x'],
+  ['mailto:team@CaliforniaCompute.org', 'Email', 'email'],
+];
+// The Landscape section: the programs and resources, slimmed to what the section shows, and the links into the
+// Landscape's views. Finding a program to use is CaliforniaCompute.org's California Compute Directory, which reads the
+// same records; its links carry the same filters in the address (serves, offers).
+const records = directoryRecords(m).filter((r) => USABLE.includes(r.kind)).map(({ id, name, kind, regions }) => ({ id, name, kind, regions }));
+const placed = new Set(records.flatMap((r) => r.regions).filter((g) => regions.regions.some((x) => x.name === g))).size;
+const SERVICE = 'https://californiacompute.org/directory/';
+const directoryViews = [[SERVICE, 'Find a program you can use'], [`${SERVICE}#offers=GPU%20compute`, 'GPU compute'], [`${SERVICE}#serves=Nonprofits`, 'For nonprofits'], [`${SERVICE}#serves=Government`, 'For public agencies'], ['/directory/research/', 'Research projects'], ['/directory/programs/', `Funding and policy (${programRecords(m).length})`], ['/directory/institutions/', 'Research institutions']];
+const ext = (href) => (href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {});
+// The explorer's map and one 3-D view, framed side by side (its ?embed mode). /explorer/ is another Worker's, so in dev it comes
+// from the explorer's own dev server.
+const explorerEmbed = `${import.meta.env.DEV ? 'http://localhost:5173' : ''}/explorer/?embed`;
+// The explorer's own views, by their address tokens (its router.ts), how many systems it holds (its changelog), the
+// system the section opens on (an approach id of its workbook) and its two 3-D views.
+const explorerViews = { count: 17, first: 'cenic',
+  modes: [['strata', 'Strata', 'Who holds each layer'], ['constellation', 'Constellation', 'Who connects to whom']],
+  links: [['map', 'Where they are'], ['journeys', 'Follow a request'], ['compare', 'Compare systems'], ['stakeholders', 'Stakeholders'], ['spectrum', 'Bundling spectrum']] };
 ---
 <Layout title="Report" bare>
-  <!-- The graph is contained in its element: on desktop the hero's right side, beside the text. Nodes bounce off its edges. -->
-  <section class="relative h-[calc(100svh-3.5rem)] bg-gradient-to-b from-[#eaf6fc] via-white to-[#fafafa] border-b border-gray-200">
-    <div class="absolute inset-0 lg:left-[37%]">
+  <!-- The graph is contained in its element: on desktop the hero's right side, beside the text. Nodes bounce off its edges.
+       Below lg the live graph does not load (client:media); the build's /graph.png shows under the text instead, and links to /graph/. -->
+  <section class="relative pb-10 lg:pb-0 lg:h-[calc(100svh-3.5rem)] bg-gradient-to-b from-[#eaf6fc] via-white to-[#fafafa] border-b border-gray-200">
+    <div class="absolute inset-0 left-[37%] hidden lg:block">
       <GraphView data={m.graph} variant="radial" backdrop inPlace animate hideLinks filters={false} scale={0.8}
-        legendClass="left-4 lg:left-[calc(1rem-58.73%)] bottom-4" captionClass="left-4 lg:left-[calc(1rem-58.73%)] bottom-12" client:only="react" />
+        legendClass="left-[calc(1rem-58.73%)] bottom-4" captionClass="left-[calc(1rem-58.73%)] bottom-12" client:media="(min-width: 1024px)" />
     </div>
     <div class="pointer-events-none relative z-10 max-w-7xl mx-auto px-4 pt-10">
-      <div class="text-xs uppercase tracking-[0.18em] text-uc-blue-dark mb-2">CalCompute Consortium · research library</div>
+      <div class="text-xs uppercase tracking-[0.18em] text-uc-blue-dark mb-2">Open Research Library</div>
       <h1 class="text-4xl sm:text-6xl font-bold text-uc-navy tracking-tight mb-5 max-w-xl">CalCompute Framework Research</h1>
+      <div class="mb-5"><ReportProgress /></div>
       <div class="inline-flex flex-wrap items-center gap-2 [&>a]:pointer-events-auto">
-        <a class="btn" href="/explorer/">Compute Governance Explorer</a>
-        <a class="btn" href={drive ?? '#drive'} {...(drive ? { target: '_blank', rel: 'noopener' } : {})}><img src="/images/apps/google-drive.svg" alt="" class="h-4 w-auto" />Google Drive{drive && ' ↗'}</a>
-        <a class="btn" href="https://join.slack.com/t/calcompute/shared_invite/zt-4ept8frp0-s35_861eT5uQRwVQ8_Uk0A" target="_blank" rel="noopener"><img src="/images/apps/slack.svg" alt="" class="h-4 w-auto" />Slack ↗</a>
-        <a class="btn" href="https://github.com/CalCompute" target="_blank" rel="noopener"><img src="/images/apps/github.svg" alt="" class="h-4 w-auto" />GitHub ↗</a>
+        <a class="btn btn-primary" href="#take-part">Take the survey</a>
+        {community.slice(0, 3).map(([href, label, logo]) => <a class="btn" href={href} {...ext(href)}><img src={`/images/apps/${logo}.svg`} alt="" class="h-4 w-auto" />{label}{href.startsWith('http') && ' ↗'}</a>)}
       </div>
-      <dl class="mt-6 flex flex-wrap gap-x-8 gap-y-3">
-        {stats.map(([n, label, note]) => <div class="pointer-events-auto flex flex-col-reverse" title={note}><dt class="text-xs text-gray-500 whitespace-nowrap">{label}</dt><dd data-count-up={n} class="text-2xl font-bold text-uc-navy [&>span]:inline-block [&>span]:w-[0.645em] [&>span]:text-center" set:html={digits(n)} /></div>)}
-      </dl>
-      <div class="mt-5"><ReportProgress /></div>
-      <p class="text-xs text-gray-500 mt-3">{m.pages.length} wiki pages · {m.graph.edges.length} links · updated {s.lastLog?.date ?? 'never'}</p>
       <div class="mt-3 -ml-1.5 flex gap-1 [&>a]:pointer-events-auto"><Social class="text-gray-400 hover:text-uc-navy" /></div>
+      <a href="/graph/" class="pointer-events-auto mt-8 block lg:hidden"><img src="/graph.png" alt="The knowledge graph of the library's sources. Open the full graph." class="mx-auto w-full max-w-md" /></a>
     </div>
   </section>
 
-  <section class="relative z-10 max-w-7xl mx-auto px-4 py-12">
+  {records.length > 0 && (
+  <section id="directory" class="relative z-10 max-w-7xl mx-auto px-4 py-12 scroll-mt-16">
+    <h2 class="text-xl font-bold mb-4">California Compute Landscape</h2>
+    <div class="card overflow-hidden">
+      <div class="grid lg:grid-cols-[15rem_1fr]">
+        <div class="flex flex-col gap-4 border-b border-gray-200 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+          <p class="text-sm text-gray-600">{records.length} AI compute, data and training programs and resources, in {placed} of the state's {regions.regions.length} regions, from the library's public sources.</p>
+          <ul class="flex flex-wrap gap-x-4 gap-y-1 text-sm lg:flex-col">
+            {directoryViews.map(([href, label]) => <li><a class="text-uc-blue-dark hover:underline" href={href} {...ext(href)}>{label} {href.startsWith('http') ? '↗' : '→'}</a></li>)}
+          </ul>
+          <div class="flex flex-wrap gap-2 lg:mt-auto lg:flex-col lg:items-start">
+            <a class="btn btn-primary" href="/directory/">Open the Landscape</a>
+          </div>
+        </div>
+        <DirectoryTeaser items={records} map={regions} client:visible />
+      </div>
+    </div>
+  </section>
+  )}
+
+  <section id="explorer" class="relative z-10 max-w-7xl mx-auto px-4 pb-12 scroll-mt-16">
+    <div class="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
+      <div>
+        <h2 class="text-xl font-bold">Compute Governance Explorer</h2>
+        <p class="text-sm text-gray-600">Who owns, hosts, runs, funds, governs and allocates shared compute, across {explorerViews.count} real systems. Choose one on the map.</p>
+      </div>
+      <a class="btn btn-primary" href="/explorer/">Open the explorer</a>
+    </div>
+    <div class="card overflow-hidden">
+      <div class="grid lg:grid-cols-2">
+        <!-- The explorer's Map view (its ?embed#map): the systems by the state that hosts each one, and a key to all of
+             them. A click there chooses a system; the script below shows it in the 3-D frame. -->
+        <iframe data-explorer-map src={`${explorerEmbed}#map.california.${explorerViews.first}`} title="Compute Governance Explorer: choose a system on the map or in the list" loading="lazy" class="block h-[36rem] w-full border-b border-gray-200 lg:border-b-0 lg:border-r"></iframe>
+        <!-- The chosen system in 3-D (its ?embed), in one of the explorer's two views. A touch screen gets this frame as
+             a picture: a swipe over it scrolls the page. -->
+        <div class="flex h-[36rem] flex-col">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gray-200 px-4 py-2 text-sm" role="group" aria-label="3-D view">
+            {explorerViews.modes.map(([view, name, what], i) => (
+              <button type="button" class="chip" data-explorer-view={view} aria-pressed={i === 0 ? 'true' : 'false'} title={what}>{name}</button>
+            ))}
+            <span class="text-gray-500" data-explorer-what>{explorerViews.modes[0][2]}</span>
+          </div>
+          <iframe data-explorer-stage={explorerEmbed} src={`${explorerEmbed}#explore.${explorerViews.first}.${explorerViews.modes[0][0]}.rm`} title="Compute Governance Explorer: the chosen system in 3-D" loading="lazy" class="block min-h-0 w-full flex-1 [@media(pointer:coarse)]:pointer-events-none"></iframe>
+          <p class="border-t border-gray-200 px-4 py-2 text-sm"><a class="text-uc-blue-dark hover:underline" data-explorer-open href={`/explorer/#explore.${explorerViews.first}.${explorerViews.modes[0][0]}`}>Open this system in the explorer →</a></p>
+        </div>
+      </div>
+      <ul class="flex flex-wrap gap-x-5 gap-y-1 border-t border-gray-200 px-4 py-3 text-sm">
+        {explorerViews.links.map(([tab, label]) => <li><a class="text-uc-blue-dark hover:underline" href={`/explorer/#${tab}`}>{label} →</a></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="relative z-10 max-w-7xl mx-auto px-4 pb-12">
     <h2 class="text-xl font-bold mb-4">The seven elements</h2>
     <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
       {m.elements.map((e) => (
@@ -57,48 +123,56 @@ const drive = folderUrl(m, 'CalCompute Library');
         </a>
       ))}
     </div>
-    {m.checklist && <p class="text-sm mt-3"><a class="underline text-uc-blue-dark" href={m.checklist.route}>Statutory requirements</a> · <a class="underline text-uc-blue-dark" href="/statute/">The statute</a> · <a class="underline text-uc-blue-dark" href="/explorer/">Compute Governance Explorer</a> (element C)</p>}
   </section>
 
-  <section id="this-week" class="relative z-10 max-w-7xl mx-auto px-4 pb-12 scroll-mt-16">
-    <h2 class="text-xl font-bold mb-4">This week</h2>
-    <Calendar cal={m.calendar} />
+  <section class="relative z-10 max-w-7xl mx-auto px-4 pb-12">
+    <Shelf shelf={m.shelf} more={m.more} heading="Source Documents" href={drive} filter suggest />
+    <p class="text-sm -mt-4"><a class="underline text-uc-blue-dark" href="/library/">All sources</a></p>
   </section>
 
-  <section id="team" class="relative z-10 max-w-7xl mx-auto px-4 pb-12 scroll-mt-16">
-    <h2 class="text-xl font-bold mb-4">Team</h2>
-    <TeamRow m={m} />
+  <!-- The call to action, which the hero's first button scrolls to. The survey comes first: it is what every call to
+       action is for. Beside it, the sign-up and the public links. -->
+  <section id="take-part" class="relative z-10 max-w-7xl mx-auto px-4 pb-16 scroll-mt-16">
+    <div class="card p-5 sm:p-6 grid gap-6 lg:grid-cols-[1fr_minmax(0,24rem)] lg:items-center">
+      <div>
+        <h2 class="text-xl font-bold mb-2">Take the landscape survey</h2>
+        <p class="text-gray-600 mb-4 max-w-prose">The Consortium is surveying California's institutions for the Framework Report. If you use compute or AI tools in your work, or manage compute for an institution or department, your answers inform the Framework.</p>
+        <a class="btn btn-primary" href="https://californiacompute.org/get-involved/" target="_blank" rel="noopener">Take the survey ↗</a>
+      </div>
+      <!-- The sign-up with the public links under it, grouped as in the footer. -->
+      <div>
+        <NewsletterForm id="take-part-email" />
+        <ul class="mt-3 flex flex-wrap gap-x-3 gap-y-2 text-sm text-gray-600">
+          {community.map(([href, label, logo]) => <li><a class="inline-flex items-center gap-1.5 hover:text-uc-navy hover:underline" href={href} {...ext(href)}><img src={`/images/apps/${logo}.svg`} alt="" class="h-3.5 w-auto" />{label}</a></li>)}
+        </ul>
+      </div>
+    </div>
   </section>
 
-  <section id="drive" class="relative z-10 max-w-7xl mx-auto px-4 pb-16 scroll-mt-16">
-    <h2 class="text-xl font-bold mb-4 inline-flex items-center gap-2"><img src="/images/apps/google-drive.svg" alt="" class="h-5 w-auto" />Google Drive</h2>
-    <FileBrowser tree={driveTree(m)} ui={DRIVE_UI} height="520px" />
-  </section>
-
-  <section id="github" class="relative z-10 max-w-7xl mx-auto px-4 pb-16 scroll-mt-16">
-    <h2 class="text-xl font-bold mb-4 inline-flex items-center gap-2"><img src="/images/apps/github.svg" alt="" class="h-5 w-auto" />GitHub: library-wiki</h2>
-    <RepoBrowser tree={repoTree()} readmes={[
-      ...m.meta.filter((e) => e.id === 'readme').map((entry) => ({ folder: '', entry })),
-      ...m.pages.filter((p) => p.rel.endsWith('/README.md')).map((p) => ({ folder: p.rel.slice(0, -'/README.md'.length), entry: p.entry })),
-    ]} />
-  </section>
   <script>
-    // Hero counters count up from 0 on load. Digits are fixed-width cells and each counter keeps its final width,
-    // so nothing moves but the digits. The final value is in the HTML: without JS or with reduced motion it just shows.
-    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const els = [...document.querySelectorAll<HTMLElement>('[data-count-up]')];
-      const digits = (n: number) => n.toLocaleString('en-US').replace(/\d/g, '<span>$&</span>');
-      // Start once the site font is in: widths measured on the fallback font would be wrong after the swap.
-      document.fonts.ready.then(() => {
-        for (const el of els) el.style.minWidth = `${el.getBoundingClientRect().width}px`; // final width, so the row never shifts
-        const t0 = performance.now(), MS = 1200;
-        const frame = (t: number) => {
-          const p = Math.min(1, Math.max(0, (t - t0) / MS)), e = 1 - (1 - p) ** 3;
-          for (const el of els) el.innerHTML = digits(Math.round(Number(el.dataset.countUp) * e));
-          if (p < 1) requestAnimationFrame(frame);
-        };
-        requestAnimationFrame(frame);
+    // The explorer section: the map frame says which system was chosen (the explorer's views/map.ts posts
+    // { type: 'explorer:select', approach }), and the 3-D frame shows it. Only the part of the frame's address after
+    // "#" changes, so the frame redraws without loading again. The two buttons choose the 3-D view the same way.
+    const frame = document.querySelector<HTMLIFrameElement>('iframe[data-explorer-stage]');
+    const open = document.querySelector<HTMLAnchorElement>('a[data-explorer-open]');
+    if (frame && open) {
+      const embed = new URL(frame.dataset.explorerStage!, location.href);
+      let [, id, view] = new URL(frame.src).hash.split('.');
+      const show = () => {
+        frame.src = `${embed.href}#explore.${id}.${view}.rm`;
+        open.href = `/explorer/#explore.${id}.${view}`;
+        for (const b of document.querySelectorAll<HTMLElement>('[data-explorer-view]')) {
+          const on = b.dataset.explorerView === view;
+          b.setAttribute('aria-pressed', String(on));
+          if (on) document.querySelector('[data-explorer-what]')!.textContent = b.title;
+        }
+      };
+      // Only the explorer itself may choose, and only by a plain id.
+      addEventListener('message', (e) => {
+        if (e.origin !== embed.origin || e.data?.type !== 'explorer:select' || !/^[a-z0-9-]{1,40}$/.test(String(e.data.approach))) return;
+        id = e.data.approach; show();
       });
+      for (const b of document.querySelectorAll<HTMLElement>('[data-explorer-view]')) b.addEventListener('click', () => { view = b.dataset.explorerView!; show(); });
     }
   </script>
 </Layout>

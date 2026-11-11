@@ -313,6 +313,11 @@ export const linkOutToDrive = (html) =>
 // page: the script fetches it into .cache/ and keeps only the thumbnail.
 export const coverOf = (pdf) => `/covers/${idOf(pdf.replace(/\.pdf$/i, ''))}.webp`;
 export const remoteCoverOf = (sourceRel) => `/covers/${idOf(sourceRel)}.webp`;
+// A source's website, as its card shows it and scripts/favicons.mjs names its icon: the url's host without www.
+export const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+// Its favicon in public/icons/ (npm run favicons), or null when there is none.
+export const faviconOf = (host) => (host && fs.existsSync(path.join('public', 'icons', `${host}.webp`)) ? `/icons/${host}.webp` : null);
+
 export const remotePdfSources = () => [...files].filter((f) => f.startsWith('wiki/sources/') && f.endsWith('.md')).flatMap((rel) => {
   const fm = readWiki(rel).split('\n---', 2)[0];
   const url = fm.match(/^url:\s*"?([^"\n]+?)"?\s*$/m)?.[1];
