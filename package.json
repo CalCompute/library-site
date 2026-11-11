@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/graph-png.mjs && pagefind --site dist",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 astro build && node scripts/graph-png.mjs && pagefind --site dist",
     "preview": "astro preview",
     "test": "node --test src/lib/wiki.test.js",
     "covers": "node scripts/covers.mjs",
