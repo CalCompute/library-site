@@ -227,3 +227,21 @@ test('the research institutions view: every row a record with a designation, a r
   const nums = bay.d.match(/-?\d+(\.\d+)?/g).map(Number), xs = nums.filter((_, i) => i % 2 === 0), ys = nums.filter((_, i) => i % 2);
   assert.ok(x > Math.min(...xs) && x < Math.max(...xs) && y > Math.min(...ys) && y < Math.max(...ys));
 });
+
+
+test('the AI laws records: every row a law with a kind, a source and dates in order', async () => {
+  const { lawRecords, datesOf, LAW_KINDS } = await import('./directory.js');
+  assert.deepEqual(datesOf('2029-01-01: The registry is due; no date here; 2026-09-09: Signed by the Governor'),
+    [{ date: '2026-09-09', what: 'Signed by the Governor' }, { date: '2029-01-01', what: 'The registry is due' }]);
+  const rel = 'wiki/directories/California AI laws.md';
+  const m = { byRel: new Map([[rel, { rel, body: fs.readFileSync(path.join(WIKI, rel), 'utf8') }]]) };
+  const recs = lawRecords(m, 'https://example.org');
+  assert.ok(recs.length >= 24);
+  assert.equal(new Set(recs.map((r) => r.id)).size, recs.length, 'two laws share an id');
+  for (const r of recs) {
+    assert.ok(LAW_KINDS.includes(r.kind), `${r.name}: ${r.kind}`);
+    assert.ok(r.sources.length, `${r.name} has no source`);
+    for (const s of r.sources) assert.match(s.href, /^https:\/\//, `${r.name}: ${s.title}`);
+    for (const x of r.related) assert.ok(recs.some((o) => o.id === x.id), `${r.name}: ${x.name}`);
+  }
+});

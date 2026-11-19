@@ -213,9 +213,9 @@ const labels = {
     const my = ++seq;
     const { term, filters: ops } = parseQuery(state.q);
     const sel = merged(ops), t = term.trim() || null;
-    noticeEl.innerHTML = '';
+    noticeEl.replaceChildren();
     if (!t && !Object.keys(sel).length && !state.sort) {
-      list.innerHTML = ''; pinEl.innerHTML = ''; more.hidden = true; results = [];
+      list.replaceChildren(); pinEl.replaceChildren(); more.hidden = true; results = [];
       renderFacets(known, sel);
       statusEl.textContent = 'Type to search every wiki and evidence page, or pick a filter to browse.';
       return;
@@ -275,7 +275,7 @@ const labels = {
       for (const n of exact) if (!found.has(n.id)) pinned.push(nodeCard(n, false));
     }
     pinEl.innerHTML = pinned.join('');
-    results = r.results.filter((x: any) => !pinIds.has(x.id)); shown = 0; list.innerHTML = '';
+    results = r.results.filter((x: any) => !pinIds.has(x.id)); shown = 0; list.replaceChildren();
     const dated = /newest|oldest/.test(state.sort) ? ' Undated pages are left out of date order.' : '';
     const forTerm = shownTerm ? ` for “${shownTerm}”` : '';
     const nExact = pinned.length ? `, ${pinned.length} exact title match${pinned.length > 1 ? 'es' : ''}` : '';

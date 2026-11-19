@@ -57,6 +57,33 @@ export function serviceRecords(m, origin) {
     .sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || COST_ORDER.indexOf(a.cost) - COST_ORDER.indexOf(b.cost) || a.name.localeCompare(b.name));
 }
 
+// The California AI laws, for CaliforniaCompute.org's California AI Law Directory, which reads them when it builds
+// (pages/laws.json.ts). One record for each row of the library's AI laws page, as plain text; a value the sources do
+// not state is empty. The order is by stated facts: the laws whose sources say what they do first, then the newest, by each law's
+// earliest date (its signing, where the row gives it). The directory does not rate a law.
+export const lawsPage = (m) => m.byRel.get('wiki/directories/California AI laws.md');
+export const LAW_KINDS = ['Statute', 'Executive order', 'Regulation', 'State policy', 'Directive'];
+// "2026-09-09: Signed by the Governor; 2029-01-01: The registry is due" -> [{ date, what }], in date order.
+// An entry with no date in front is not a date and is left out.
+export const datesOf = (cell) =>
+  list(cell).map((x) => x.match(/^(\d{4}-\d{2}-\d{2}):\s*(.+)$/)).filter(Boolean).map(([, date, what]) => ({ date, what }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+export function lawRecords(m, origin) {
+  const page = lawsPage(m), rows = rowsOf(page), ids = new Map(rows.map((r) => [plain(r.Name), slugSeg(plain(r.Name))]));
+  return rows.map((r) => {
+    const name = plain(r.Name);
+    return {
+      id: ids.get(name), name, kind: plain(r.Kind), status: plain(r.Status), topics: list(r.Topics), concerns: list(r.Concerns),
+      summary: plain(r.Summary), requires: list(r.Requires), dates: datesOf(r['Key dates']), enforcement: plain(r.Enforcement),
+      related: list(r.Related).filter((n) => ids.has(n)).map((n) => ({ id: ids.get(n), name: n })), link: linkOf(r.Link), checked: plain(r.Checked),
+      sources: [...(r.Sources || '').matchAll(LINK_RE)].map(([, title, href]) => {
+        const x = resolveHref(page.rel, href);
+        return { title: plain(title), href: x.external ? href : x.route && origin + x.route };
+      }).filter((s) => s.href),
+    };
+  }).sort((a, b) => !a.summary - !b.summary || (b.dates[0]?.date ?? '').localeCompare(a.dates[0]?.date ?? '') || a.name.localeCompare(b.name));
+}
+
 export function programRecords(m) {
   const page = programsPage(m);
   return rowsOf(page).map((r) => {
@@ -83,7 +110,7 @@ export const pinAt = ({ scale, translate: [tx, ty] }, lat, lon) =>
 const GAP = 7;
 function spread(recs) {
   const placed = [];
-  for (const r of [...recs].sort((a, b) => DESIGNATIONS.indexOf(a.kind) - DESIGNATIONS.indexOf(b.kind))) {
+  for (const r of recs.toSorted((a, b) => DESIGNATIONS.indexOf(a.kind) - DESIGNATIONS.indexOf(b.kind))) {
     const free = (x, y) => placed.every((q) => Math.hypot(x - q.x, y - q.y) >= GAP - 0.01);
     if (!free(r.x, r.y)) {
       const [ox, oy] = [r.x, r.y];
