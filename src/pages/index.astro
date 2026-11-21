@@ -42,21 +42,21 @@ const explorerViews = { count: 17, first: 'cenic',
 <Layout title="Report" bare>
   <!-- The graph is contained in its element: on desktop the hero's right side, beside the text. Nodes bounce off its edges.
        Below lg the live graph does not load (client:media); the build's /graph.png shows under the text instead, and links to /graph/. -->
-  <section class="relative pb-10 lg:pb-0 lg:h-[calc(100svh-3.5rem)] bg-gradient-to-b from-[#eaf6fc] via-white to-[#fafafa] border-b border-gray-200">
+  <section class="relative pb-10 lg:pb-0 lg:h-[calc(100svh-3.5rem)] border-b border-gray-200">
     <div class="absolute inset-0 left-[37%] hidden lg:block">
-      <GraphView data={m.graph} variant="radial" backdrop inPlace animate hideLinks filters={false} scale={0.8}
+      <GraphView data={m.graph} variant="radial" backdrop inPlace animate hideLinks filters={false} scale={0.8} center={[0.6, 0.5]} placeholder="/graph.png"
         legendClass="left-[calc(1rem-58.73%)] bottom-4" captionClass="left-[calc(1rem-58.73%)] bottom-12" client:media="(min-width: 1024px)" />
     </div>
     <div class="pointer-events-none relative z-10 max-w-7xl mx-auto px-4 pt-10">
-      <div class="text-xs uppercase tracking-[0.18em] text-uc-blue-dark mb-2">Open Research Library</div>
+      <div class="text-sm font-medium text-uc-blue-dark mb-2">Open Research Library</div>
       <h1 class="text-4xl sm:text-6xl font-bold text-uc-navy tracking-tight mb-5 max-w-xl">CalCompute Framework Research</h1>
       <div class="mb-5"><ReportProgress /></div>
       <div class="inline-flex flex-wrap items-center gap-2 [&>a]:pointer-events-auto">
-        <a class="btn btn-primary" href="#take-part">Take the survey</a>
+        <a class="btn btn-primary" href="https://californiacompute.org/get-involved/" {...ext('https://californiacompute.org/get-involved/')}>Take the survey ↗</a>
         {community.slice(0, 3).map(([href, label, logo]) => <a class="btn" href={href} {...ext(href)}><img src={`/images/apps/${logo}.svg`} alt="" class="h-4 w-auto" />{label}{href.startsWith('http') && ' ↗'}</a>)}
       </div>
-      <div class="mt-3 -ml-1.5 flex gap-1 [&>a]:pointer-events-auto"><Social class="text-gray-400 hover:text-uc-navy" /></div>
-      <a href="/graph/" class="pointer-events-auto mt-8 block lg:hidden"><img src="/graph.png" alt="The knowledge graph of the library's sources. Open the full graph." class="mx-auto w-full max-w-md" /></a>
+      <div class="mt-3 -ml-1.5 flex gap-1 [&>a]:pointer-events-auto"><Social class="text-gray-500 hover:text-uc-navy" /></div>
+      <a href="/graph/" class="pointer-events-auto mt-8 block lg:hidden"><img src="/graph.png" alt="The knowledge graph of the library's sources. Open the full graph." class="mx-auto w-full max-w-md" onerror="this.parentElement.remove()" /></a>
     </div>
   </section>
 
@@ -64,11 +64,11 @@ const explorerViews = { count: 17, first: 'cenic',
   <section id="directory" class="relative z-10 max-w-7xl mx-auto px-4 py-12 scroll-mt-16">
     <h2 class="text-xl font-bold mb-4">California Compute Landscape</h2>
     <div class="card overflow-hidden">
-      <div class="grid lg:grid-cols-[15rem_1fr]">
+      <div class="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[15rem_minmax(0,1fr)]">
         <div class="flex flex-col gap-4 border-b border-gray-200 p-4 sm:p-5 lg:border-b-0 lg:border-r">
           <p class="text-sm text-gray-600">{records.length} AI compute, data and training programs and resources, in {placed} of the state's {regions.regions.length} regions, from the library's public sources.</p>
           <ul class="flex flex-wrap gap-x-4 gap-y-1 text-sm lg:flex-col">
-            {directoryViews.map(([href, label]) => <li><a class="text-uc-blue-dark hover:underline" href={href} {...ext(href)}>{label} {href.startsWith('http') ? '↗' : '→'}</a></li>)}
+            {directoryViews.map(([href, label]) => <li><a class="text-uc-blue-dark hover:underline" href={href} {...ext(href)}>{label}{href.startsWith('http') && ' ↗'}</a></li>)}
           </ul>
           <div class="flex flex-wrap gap-2 lg:mt-auto lg:flex-col lg:items-start">
             <a class="btn btn-primary" href="/directory/">Open the Landscape</a>
@@ -103,11 +103,11 @@ const explorerViews = { count: 17, first: 'cenic',
             <span class="text-gray-500" data-explorer-what>{explorerViews.modes[0][2]}</span>
           </div>
           <iframe data-explorer-stage={explorerEmbed} src={`${explorerEmbed}#explore.${explorerViews.first}.${explorerViews.modes[0][0]}.rm`} title="Compute Governance Explorer: the chosen system in 3-D" loading="lazy" class="block min-h-0 w-full flex-1 [@media(pointer:coarse)]:pointer-events-none"></iframe>
-          <p class="border-t border-gray-200 px-4 py-2 text-sm"><a class="text-uc-blue-dark hover:underline" data-explorer-open href={`/explorer/#explore.${explorerViews.first}.${explorerViews.modes[0][0]}`}>Open this system in the explorer →</a></p>
+          <p class="border-t border-gray-200 px-4 py-2 text-sm"><a class="text-uc-blue-dark hover:underline" data-explorer-open href={`/explorer/#explore.${explorerViews.first}.${explorerViews.modes[0][0]}`}>Open this system in the explorer</a></p>
         </div>
       </div>
       <ul class="flex flex-wrap gap-x-5 gap-y-1 border-t border-gray-200 px-4 py-3 text-sm">
-        {explorerViews.links.map(([tab, label]) => <li><a class="text-uc-blue-dark hover:underline" href={`/explorer/#${tab}`}>{label} →</a></li>)}
+        {explorerViews.links.map(([tab, label]) => <li><a class="text-uc-blue-dark hover:underline" href={`/explorer/#${tab}`}>{label}</a></li>)}
       </ul>
     </div>
   </section>
@@ -126,12 +126,12 @@ const explorerViews = { count: 17, first: 'cenic',
   </section>
 
   <section class="relative z-10 max-w-7xl mx-auto px-4 pb-12">
-    <Shelf shelf={m.shelf} more={m.more} heading="Source Documents" href={drive} filter suggest />
+    <Shelf shelf={m.shelf} more={m.more} heading="Source documents" href={drive} filter suggest />
     <p class="text-sm -mt-4"><a class="underline text-uc-blue-dark" href="/library/">All sources</a></p>
   </section>
 
-  <!-- The call to action, which the hero's first button scrolls to. The survey comes first: it is what every call to
-       action is for. Beside it, the sign-up and the public links. -->
+  <!-- The call to action. The survey comes first: it is what every call to action is for. Beside it, the sign-up and
+       the public links. -->
   <section id="take-part" class="relative z-10 max-w-7xl mx-auto px-4 pb-16 scroll-mt-16">
     <div class="card p-5 sm:p-6 grid gap-6 lg:grid-cols-[1fr_minmax(0,24rem)] lg:items-center">
       <div>

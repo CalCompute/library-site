@@ -40,7 +40,7 @@ const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 export const plural = (n, word) => `${n} ${n === 1 ? word : word.replace(/(\w+)( or |$)/g, '$1s$2')}`;
 
 function Tag({ children }) {
-  return <span className="rounded border border-gray-200 px-1.5 py-px font-mono text-[10px] uppercase tracking-wide text-gray-500">{children}</span>;
+  return <span className="rounded border border-gray-200 px-1.5 py-px text-xs text-gray-600">{children}</span>;
 }
 function Status({ value }) {
   if (!value) return null;
@@ -50,7 +50,7 @@ function Chip({ on, count, onClick, children }) {
   return (
     <button type="button" aria-pressed={on} onClick={onClick} disabled={!count && !on}
       className={`rounded-full border px-2.5 py-1 text-xs ${on ? 'border-uc-blue-dark bg-uc-blue-dark text-white' : 'border-gray-300 bg-white text-gray-700 hover:border-gray-500'} disabled:opacity-40 disabled:hover:border-gray-300`}>
-      {children} <span className={`font-mono text-xs ${on ? 'text-white/70' : 'text-gray-400'}`}>{count}</span>
+      {children} <span className={`tabular-nums text-xs ${on ? 'text-white/80' : 'text-gray-500'}`}>{count}</span>
     </button>
   );
 }
@@ -67,7 +67,7 @@ export function RegionMap({ map, counts, selected, onPick, onHover, pins = null,
         const on = selected === g.name, n = counts[g.name] ?? 0;
         return (
           <path key={g.name} d={g.d} fill={pins ? PIN_FILL : shade(n)} stroke="white" strokeWidth="1.5" strokeLinejoin="round"
-            className="cursor-pointer outline-none transition-opacity hover:opacity-80 focus-visible:opacity-80"
+            className="cursor-pointer outline-none transition-opacity hover:opacity-80 focus-visible:opacity-80 focus-visible:[stroke:#002033] focus-visible:[stroke-width:3px]"
             opacity={selected && !on ? 0.45 : 1} role="button" tabIndex={0} aria-pressed={on} aria-label={`${g.name}, ${plural(n, 'record')}`}
             onClick={() => onPick(g.name)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(g.name); } }}
             onMouseEnter={() => onHover(g.name)} onMouseLeave={() => onHover(null)} onFocus={() => onHover(g.name)} onBlur={() => onHover(null)} />
@@ -77,7 +77,7 @@ export function RegionMap({ map, counts, selected, onPick, onHover, pins = null,
       {map.regions.filter((g) => g.name === selected).map((g) => <path key={g.name} d={g.d} fill="none" stroke="#002033" strokeWidth="2" strokeLinejoin="round" pointerEvents="none" />)}
       {pins && pins.map((p) => {
         const s = PIN[p.kind] ?? PIN['Research 1'];
-        const act = { role: 'button', tabIndex: 0, 'aria-label': `${p.name}, ${p.kind}`, className: 'cursor-pointer outline-none',
+        const act = { role: 'button', tabIndex: 0, 'aria-label': `${p.name}, ${p.kind}`, className: 'cursor-pointer outline-none focus-visible:[stroke:#002033] focus-visible:[stroke-width:3px]',
           opacity: p.dim ? 0.2 : 1, stroke: 'white', strokeWidth: 1, fill: s.fill,
           onClick: () => onPin(p.id), onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPin(p.id); } },
           onMouseEnter: () => onPinHover(p), onMouseLeave: () => onPinHover(null), onFocus: () => onPinHover(p), onBlur: () => onPinHover(null) };
@@ -120,7 +120,7 @@ function Detail({ item, onClose }) {
           )}
           <dl className="mt-4 space-y-3 text-sm">
             {item.fields.map(([label, html]) => (
-              <div key={label}><dt className="font-mono text-[11px] uppercase tracking-wide text-gray-500">{label}</dt><dd className="md mt-0.5 text-gray-800" dangerouslySetInnerHTML={{ __html: html }} /></div>
+              <div key={label}><dt className="text-xs font-medium text-gray-600">{label}</dt><dd className="md mt-0.5 text-gray-800" dangerouslySetInnerHTML={{ __html: html }} /></div>
             ))}
           </dl>
           <p className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500">
@@ -177,14 +177,14 @@ export default function Directory({ items, map = null, mode = map ? 'browse' : '
     <label className="block">
       <span className="sr-only">Search the directory</span>
       <input type="search" value={s.q} onChange={(e) => set({ q: e.target.value })} placeholder={mode === 'list' ? 'Search programs' : 'Search by name, place or topic'}
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base shadow-sm outline-none focus:border-uc-blue-dark focus:ring-2 focus:ring-uc-blue-light" />
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base outline-none focus:border-uc-blue-dark focus:ring-2 focus:ring-uc-blue-light" />
     </label>
   );
   // The label column fits the longest label: the compute directory's are four rem; "Designation" needs six.
   const lw = facets.some(([, l]) => l.length > 7) ? 'w-24' : 'w-16';
   const row = (f, label, single) => (
     <div key={f} className="flex flex-wrap items-center gap-1.5" role="group" aria-label={label}>
-      <span className={`font-mono text-[11px] uppercase tracking-wide text-gray-500 ${lw}`}>{label}</span>
+      <span className={`text-xs font-medium text-gray-600 ${lw}`}>{label}</span>
       {optionsOf(f).map((v) => <Chip key={v} on={s[f].includes(v)} count={counts[f][v] ?? 0} onClick={() => toggle(f, v, single)}>{cap(v)}</Chip>)}
     </div>
   );
@@ -197,7 +197,7 @@ export default function Directory({ items, map = null, mode = map ? 'browse' : '
   const cards = (list) => (
     <ul className={`mt-3 grid gap-3 ${map ? 'xl:grid-cols-2' : 'md:grid-cols-2'}`}>
       {list.map((r) => (
-        <li key={r.id} className="card flex flex-col transition-shadow hover:border-gray-400 hover:shadow-sm">
+        <li key={r.id} className="card flex flex-col transition-colors hover:border-gray-400">
           <button type="button" onClick={() => set({ r: r.id })} className="flex w-full flex-1 flex-col rounded-xl p-4 text-left focus-visible:outline-2 focus-visible:outline-uc-blue-dark">
             {r.mark && <img src={r.mark} alt="" loading="lazy" decoding="async" className="mb-2 h-8 w-auto max-w-[10rem] object-contain object-left" />}
             <span className="flex items-baseline gap-2 font-semibold leading-snug text-uc-navy">
@@ -266,18 +266,18 @@ export default function Directory({ items, map = null, mode = map ? 'browse' : '
                   <button type="button" aria-pressed={on} onClick={() => toggle('region', g.name, true)} onMouseEnter={() => setHover(g.name)} onMouseLeave={() => setHover(null)}
                     className={`flex w-full items-center gap-1.5 rounded px-1.5 py-1 text-left ${on ? 'bg-uc-blue-light/60 font-semibold text-uc-navy' : 'hover:bg-gray-100'} ${n ? '' : 'text-gray-400'}`}>
                     {!pins && <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: shade(n) }} aria-hidden="true" />}
-                    <span className="truncate">{SHORT[g.name] ?? g.name}</span><span className="ml-auto font-mono text-xs text-gray-500">{n}</span>
+                    <span className="truncate">{SHORT[g.name] ?? g.name}</span><span className="ml-auto tabular-nums text-xs text-gray-500">{n}</span>
                   </button>
                 </li>
               );
             })}
           </ul>
-          <p className="mt-3 border-t border-gray-100 pt-3 font-mono text-[11px] uppercase tracking-wide text-gray-500">Open to every region</p>
+          <p className="mt-3 border-t border-gray-100 pt-3 text-xs font-medium text-gray-600">Open to every region</p>
           <div className="mt-1.5 grid grid-cols-2 gap-2">
             {WIDE.map((g) => (
               <button key={g} type="button" aria-pressed={region === g} onClick={() => toggle('region', g, true)}
                 className={`rounded-lg border px-3 py-2 text-left text-sm ${region === g ? 'border-uc-blue-dark bg-uc-blue-light/60 font-semibold text-uc-navy' : 'border-gray-200 hover:border-gray-400'}`}>
-                {g} <span className="float-right font-mono text-xs text-gray-500">{counts.region[g] ?? 0}</span>
+                {g} <span className="float-right tabular-nums text-xs text-gray-500">{counts.region[g] ?? 0}</span>
               </button>
             ))}
           </div>

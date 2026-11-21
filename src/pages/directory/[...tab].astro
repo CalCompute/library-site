@@ -31,7 +31,6 @@ const page = pages[tab];
 ---
 <Layout title="California Compute Landscape" description="The AI compute, data and training programs, research projects and research institutions of California, by region, with the public source for every record.">
   <header class="mb-5">
-    <p class="font-mono text-[11px] uppercase tracking-[0.18em] text-uc-blue-dark mb-1">CalCompute research · Landscape</p>
     <h1 class="text-3xl sm:text-4xl font-bold text-uc-navy tracking-tight mb-2">California Compute Landscape</h1>
     <p class="text-gray-700 max-w-prose">The AI compute, data and training programs, research projects and research institutions of California, by region. Other organizations run everything listed here. Each record reports what its public sources say. To find a program that you can use, go to the <a class="underline" href={SERVICE}>California Compute Directory</a> on CaliforniaCompute.org.</p>
     <dl class="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
@@ -44,7 +43,7 @@ const page = pages[tab];
     {tabs.map(([k, href, label, n]) => (
       <a href={href} aria-current={k === tab ? 'page' : undefined}
         class={`px-3 py-2 text-sm -mb-px border-b-2 ${k === tab ? 'border-uc-blue-dark text-uc-navy font-semibold' : 'border-transparent text-gray-600 hover:text-gray-900'}`}>
-        {label} <span class="font-mono text-xs text-gray-400 font-normal">{n}</span>
+        {label} <span class="tabular-nums text-xs text-gray-500 font-normal">{n}</span>
       </a>
     ))}
   </nav>

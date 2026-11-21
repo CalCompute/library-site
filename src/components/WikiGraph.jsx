@@ -42,7 +42,7 @@ const FLOW = 'rgba(11,154,74,'
 // inPlace: settle the layout fully, hidden, and show it once in place; no fade or drift. navigator implies it.
 // navigator: fill the parent, pan and zoom, and float the key (children as its title) top-left as a collapsible panel.
 // center: where the graph's middle sits, as fractions of the canvas (desktop only, 1024px and wider). zoom: scale on top of fit.
-export default function GraphView({ data, variant = 'radial', focusNodeId, labels = false, height = 600, filters = true, catalog = true, animate = false, legend = true, backdrop = false, center = [0.5, 0.5], zoom = 1, legendClass = 'left-4 bottom-4', captionClass, scale = 0.8, margin = [0, 0], hideLinks = false, download = false, navigator = false, inPlace = false, focusHash = false, selectOnClick = false, children }) {
+export default function GraphView({ data, variant = 'radial', focusNodeId, labels = false, height = 600, filters = true, catalog = true, animate = false, legend = true, backdrop = false, center = [0.5, 0.5], zoom = 1, legendClass = 'left-4 bottom-4', captionClass, scale = 0.8, margin = [0, 0], hideLinks = false, download = false, navigator = false, inPlace = false, focusHash = false, selectOnClick = false, placeholder, children }) {
   // focusHash: the selected node is the URL hash (a node id), so a Find box, a click or a link can set it. Selecting
   // moves nothing (user, Oct. 29, 2026): it only changes what is spotlit, so the layout never re-runs for it.
   const [hashFocus, setHashFocus] = useState(null)
@@ -66,14 +66,20 @@ export default function GraphView({ data, variant = 'radial', focusNodeId, label
   // all of them. The spinner shows from Apply (and from page load) until the Canvas reports the new layout in place.
   const [draftOff, setDraftOff] = useState(off)
   const [draftHubs, setDraftHubs] = useState(showHubs)
-  const [busy, setBusy] = useState(navigator)
+  // Nothing moves in view: every graph but a labeled mini map (which is placed, not simulated) settles hidden first.
+  const hidden = inPlace || navigator || !labels
+  const [busy, setBusy] = useState(hidden && !placeholder)
+  // placeholder: a still of the graph (the build's /graph.png) shown until the live layout has settled
+  const [settled, setSettled] = useState(false)
+  const [shown, setShown] = useState(false)
   const shownOff = navigator ? draftOff : off, shownHubs = navigator ? draftHubs : showHubs
   const pending = draftHubs !== showHubs || draftOff.size !== off.size || [...draftOff].some((t) => !off.has(t))
   const apply = () => { setBusy(true); setOff(draftOff); setShowHubs(draftHubs) }
   // A chip turns all the types of its kind on or off together.
   const flip = (s, ts) => { const n = new Set(s), on = ts.every((t) => n.has(t)); ts.forEach((t) => (on ? n.delete(t) : n.add(t))); return n }
-  const toggle = (t) => (navigator ? setDraftOff : setOff)((s) => flip(s, t))
-  const toggleHubs = () => (navigator ? setDraftHubs : setShowHubs)((v) => !v)
+  // Outside the navigator a chip applies at once; the graph re-settles hidden, so the spinner shows meanwhile.
+  const toggle = (t) => { if (!navigator) setBusy(true); (navigator ? setDraftOff : setOff)((s) => flip(s, t)) }
+  const toggleHubs = () => { if (!navigator) setBusy(true); (navigator ? setDraftHubs : setShowHubs)((v) => !v) }
 
   const overlay = backdrop || navigator // the canvas fills the parent and the key floats over it
   const fill = height === '100%' || overlay
@@ -122,8 +128,9 @@ export default function GraphView({ data, variant = 'radial', focusNodeId, label
   )
   return (
     <div className={overlay ? 'relative w-full h-full' : fill ? 'w-full flex-1 min-h-0 flex flex-col' : 'w-full'}>
-      <Canvas data={view} variant={variant} focusNodeId={focusNodeId} selectedId={selectedId} selectOnClick={selectOnClick} height={fill ? '100%' : height} animate={animate} labels={labels} hideLinks={hideLinks} download={download} navigator={navigator} inPlace={inPlace || navigator} onSettled={() => setBusy(false)} center={center} zoom={zoom} margin={margin} scale={scale}
+      <Canvas data={view} variant={variant} focusNodeId={focusNodeId} selectedId={selectedId} selectOnClick={selectOnClick} height={fill ? '100%' : height} animate={animate} labels={labels} hideLinks={hideLinks} download={download} navigator={navigator} inPlace={hidden} onSettled={() => { setBusy(false); setSettled(true) }} center={center} zoom={zoom} margin={margin} scale={scale}
         fillClass={overlay ? 'absolute inset-0' : 'relative flex-1 min-h-0'} captionClass={captionClass ?? (backdrop ? 'left-4 bottom-12' : 'left-2 bottom-2')} />
+      {placeholder && !settled && <img src={placeholder} alt="" aria-hidden="true" onLoad={() => setShown(true)} onError={() => setSettled(true)} ref={(el) => { if (el?.complete) setTimeout(() => (el.naturalWidth ? setShown(true) : setSettled(true))) }} className={`${shown ? '' : 'invisible '}pointer-events-none absolute inset-0 m-auto h-full w-full object-contain`} />}
       {navigator && !children && !legendEl && !filtersEl ? null : navigator ? (
         // The key: pinned over the graph, collapsed by clicking its title. Native <details>; open is set once here and
         // never passed as a prop, because React re-applies a prop on each render and would undo the reader's toggle.
@@ -510,7 +517,6 @@ function Canvas({ data, variant, focusNodeId, selectedId = null, selectOnClick =
       width = w; height = h; dpr = Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       eased = false; draw(performance.now()) // resizing clears the canvas: repaint now, on the new fitted view
-      if (radial && nodes.length && !sim.settling) { sim.alpha = Math.max(sim.alpha, 0.2); kick() } // new walls: let nodes settle inside them
     }
     let roPending = false
     const onResize = () => { if (roPending) return; roPending = true; requestAnimationFrame(() => { roPending = false; measure() }) }
@@ -544,17 +550,12 @@ function Canvas({ data, variant, focusNodeId, selectedId = null, selectOnClick =
     const onDown = (ev) => {
       const i = pick(ev)
       if (i < 0) { if (navigator) { panning = true; dragged = false; downX = lastX = ev.clientX; downY = lastY = ev.clientY; canvas.style.cursor = 'grabbing'; ev.preventDefault() } return }
-      sim.dragIdx = i; dragged = false; downX = ev.clientX; downY = ev.clientY; sim.dragX = nodes[i].x; sim.dragY = nodes[i].y; ev.preventDefault() }
+      dragged = false } // nodes are not dragged: a press on one is only the start of a click
     const onUp = () => { sim.dragIdx = -1; if (panning) { panning = false; canvas.style.cursor = 'grab' } }
     const onMove = (ev) => {
       if (panning) {
         if (!dragged && Math.hypot(ev.clientX - downX, ev.clientY - downY) < 3) return
         dragged = true; panBy(ev.clientX - lastX, ev.clientY - lastY); lastX = ev.clientX; lastY = ev.clientY
-        return
-      }
-      if (sim.dragIdx >= 0) {
-        if (!dragged && Math.hypot(ev.clientX - downX, ev.clientY - downY) < 3) return
-        dragged = true;[sim.dragX, sim.dragY] = toSim(ev); sim.alpha = Math.max(sim.alpha, 0.3); kick()
         return
       }
       const prev = hover, prevE = hoverEdge; hover = pick(ev); hoverEdge = hover < 0 ? pickEdge(ev) : -1

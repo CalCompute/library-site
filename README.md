@@ -11,9 +11,26 @@ The website of the [CalCompute Research Library](https://github.com/CalCompute/l
 - **The link preview card** (`public/images/og-card.png`, 1200×630; Nov. 11, 2026) is the home page hero: a headless-Chrome shot of `/` at 1200×630 with the nav, search, button, progress bar, hero buttons, social icons and graph legend hidden, 64px margins, after the graph has settled. Every page uses it (`og:` and `twitter:` tags in `src/layouts/Layout.astro`), and so does the explorer, which links it by its full URL. Redo it whenever the hero changes; CaliforniaCompute.org's card is made the same way from its hero.
 - `/stats.json` is the home page's counts (`src/pages/stats.json.ts`). CaliforniaCompute.org's Framework section reads it live, so `public/_headers` lets any origin fetch it.
 - **`/directory/` is the Landscape**, the library's research view of its directory pages: programs and resources, research projects and organizations, funding and policy, and research institutions, by region. Finding a program to use is a CalCompute service on CaliforniaCompute.org, the California Compute Directory at `/directory/` there (Nov. 10, 2026: services on the main site, research here). It reads `/directory.json` (`src/pages/directory.json.ts`) when it builds: the 69 programs and resources as plain text, with their sources' library addresses, and the region map. So a change to the directory page reaches that service at its next build. Its corrections post to this Worker's `/api/suggest`, like this site's.
-- The home page's Framework Report bar (`src/components/ReportProgress.astro`) fills from SB-53's signing (Sept. 29, 2025) to the report's due date (Jan. 1, 2027), with no label, dates or percent, and a shimmer on the fill; the fill grows from empty when the bar comes into view. CaliforniaCompute.org shows the same bar, labelled.
+- The home page's Framework Report bar (`src/components/ReportProgress.astro`) fills from SB-53's signing (Sept. 29, 2025) to the report's due date (Jan. 1, 2027), with no label or dates, only its percent; the fill grows from empty once, when the bar comes into view (its shimmer went on Nov. 20, 2026: see Visual design). CaliforniaCompute.org shows the same bar, labelled.
 - **Forms.** *Suggest or correct* (`src/components/SuggestDialog.astro`) takes a source, a correction, data or a question; the newsletter sign-up (`src/components/NewsletterForm.astro`, in the footer) takes an email address and sends nothing yet. Both post to `/api/*` on this Worker (`src/worker.js`), which checks each post with Cloudflare Turnstile and stores it in the D1 database `calcompute-community` (`schema.sql`). The explorer and CaliforniaCompute.org post to the same endpoints; their copies of `src/lib/forms.js` must match it. A person reads every suggestion: `npm run submissions` prints the new ones, `npm run subscribers` the list, and `scripts/submissions.mjs` shows how to mark one read. Nothing a visitor sends changes the library by itself.
 - The home page's five counts, the calendar, and the hollow markers in the graph for the consortium's calls and messages come from `library-wiki/activity.json`, which the consortium's team publishes. It holds kinds, dates, element letters and counts only.
+
+## Visual design
+
+The `frontend-design` skill governs how the site looks (the maintainer's call, Nov. 20, 2026): where an older note here or in the code disagrees, the skill wins. CaliforniaCompute.org's `AGENTS.md` (Conventions, "Visual design") has the full list. On this site:
+
+- Labels are in sentence case, never in capitals or letter-spaced. An eyebrow appears only when it says more than its heading.
+- Kunst Grotesk sets everything; monospace is for code only. Counts use tabular figures.
+- Link text carries no "→"; "↗" marks a link that leaves the site.
+- Middle dots separate values in data rows and tab titles only, never in a label or a sentence.
+- Text meets WCAG AA. UC Blue is for fills and large type, never small text or under white text. Links are UC secondary Blue and turn UC Dark Blue on hover. Every focusable element shows a focus ring (`:focus-visible` in `global.css`), and every page has a skip link.
+- No decorative gradient, blur or glow. The dot grid stays: it is the library's graph paper, a choice for its laboratory register.
+- Cards and covers have a border and no resting shadow, and nothing lifts on hover.
+- The home page's graph is the site's one moving thing. It shows the build's `/graph.png` until its live layout settles, centred right of the heading. The Report bar fills once.
+- `.btn`, `.chip` and `.card` sit in Tailwind's components layer, so a utility class on them wins; no `!` patches.
+- A missing page gets `404.astro` (`not_found_handling` in `wrangler.jsonc`).
+- Check a change on the rendered page, at desktop and phone width.
+- `site/` (the team dashboard) mirrors these files and follows the same rules; the explorer's `src/chrome.css` copies the header and footer.
 
 ## Run it
 

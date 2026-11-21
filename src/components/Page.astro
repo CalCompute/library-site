@@ -39,6 +39,8 @@ const base = page.rel.replace(/\.md$/, '');
 const originals = [...files].filter((f) => f !== page.rel && f.startsWith(base + '.') && !f.endsWith('.md') && rehosted(f));
 const onlineUrl = page.data.url || page.data.fetched_url || page.data.sourceUrl;
 const facts = Object.entries(page.data || {}).filter(([k]) => k !== 'title');
+// A frontmatter key as a reader's word: source_count is "Sources", the rest lose underscores and gain a capital.
+const keyLabel = (k: string) => ({ source_count: 'Sources' } as Record<string, string>)[k] ?? (k[0].toUpperCase() + k.slice(1)).replace(/_/g, ' ');
 
 // Search (Pagefind reads these at build time; see /search/). One element per filter value: a joined
 // value would be one filter "A, B". Meta and sort values are inline, so each needs its own element.
@@ -78,12 +80,12 @@ const meta = Object.entries({
   <div class={local.nodes.length > 1 ? 'grid md:grid-cols-2 gap-8 items-start' : ''}>
     <div data-pagefind-body>
       <a href={routeOf(folder) ?? '/'} class="text-sm text-uc-blue-dark hover:underline" data-pagefind-ignore>← {folder}</a>
-      <div class="mt-4 text-xs uppercase tracking-wide text-gray-500" data-pagefind-ignore data-pagefind-filter="kind" data-pagefind-meta="kind">{page.tree === 'raw' ? (page.readme ? 'folder guide' : RAW_FOLDERS[sub]?.[0] ?? sub) : page.type}</div>
+      <div class="mt-4 text-sm text-gray-600 first-letter:uppercase" data-pagefind-ignore data-pagefind-filter="kind" data-pagefind-meta="kind">{page.tree === 'raw' ? (page.readme ? 'folder guide' : RAW_FOLDERS[sub]?.[0] ?? sub) : page.type}</div>
       <div class="flex items-center gap-5 mt-1 mb-4">
         {photo && <img src={photo} alt="" width="128" height="128" class="h-32 w-32 shrink-0 rounded-full object-cover border border-gray-200" />}
         {cover && (
           <a href={cover.href ?? undefined} target="_blank" rel="noopener" title={cover.href ? 'Open the original' : undefined} class="shrink-0" data-pagefind-ignore>
-            <img src={cover.src} alt="First page of the original document" width="320" height="414" class="h-40 w-auto rounded-sm border border-gray-200 shadow-md" />
+            <img src={cover.src} alt="First page of the original document" width="320" height="414" class="h-40 w-auto rounded-sm border border-gray-200" />
           </a>
         )}
         <div class="min-w-0">
@@ -97,7 +99,7 @@ const meta = Object.entries({
                   {institution && !position.includes(institution) && <span>{institution}</span>}
                 </p>
               )}
-              {GROUPS[page.data.group] && <p class="text-xs uppercase tracking-wide text-uc-blue-dark">{GROUPS[page.data.group]}</p>}
+              {GROUPS[page.data.group] && <p class="text-sm text-uc-blue-dark first-letter:uppercase">{GROUPS[page.data.group]}</p>}
             </div>
           )}
         </div>
@@ -118,10 +120,10 @@ const meta = Object.entries({
       )}
       {facts.length > 0 && !member && (
         <dl class="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm text-gray-600 mb-2" data-pagefind-ignore>
-          {facts.map(([k, v]) => (<><dt class="text-gray-400">{k}</dt><dd class="break-words">{v instanceof Date ? day(v) : Array.isArray(v) ? v.join(', ') : String(v)}</dd></>))}
+          {facts.map(([k, v]) => (<><dt class="text-gray-600">{keyLabel(k)}</dt><dd class="break-words">{v instanceof Date ? day(v) : Array.isArray(v) ? v.join(', ') : String(v)}</dd></>))}
         </dl>
       )}
-      <p class="text-sm text-gray-500" data-pagefind-ignore>Links to {outlinks.length} · Referenced by {backlinks.length}</p>
+      <p class="text-sm text-gray-500" data-pagefind-ignore>Links to {outlinks.length}, referenced by {backlinks.length}</p>
       <div hidden>
         <p>{factText}</p>
         <p>{provText}</p>
@@ -144,7 +146,7 @@ const meta = Object.entries({
 {element === 'C' && (
   <aside class="card p-5 mb-8 flex flex-col sm:flex-row sm:items-center gap-4" data-pagefind-ignore>
     <div class="flex-1">
-      <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Interactive</p>
+      <p class="text-sm font-semibold text-gray-600 mb-1">Interactive</p>
       <h2 class="text-lg font-bold text-uc-navy">Compute Governance Explorer</h2>
       <p class="text-sm text-gray-600 mt-1">Who owns, hosts, runs, funds, governs and allocates shared AI and HPC compute, compared across real configurations, with every fact tagged and sourced.</p>
     </div>

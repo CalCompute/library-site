@@ -115,7 +115,7 @@ const labels = {
       const cut = open.has(k) ? vals.length : 8;
       const chips = vals.map(([v, c], i) => `<button type="button" class="chip" ${i >= cut && !sel[k]?.includes(v) ? 'hidden' : ''} aria-pressed="${!!sel[k]?.includes(v)}" data-col="${esc(k)}" data-val="${esc(v)}">${esc(label(k, v))} <span class="opacity-60">${c}</span></button>`).join('');
       const fold = vals.length > 8 ? `<button type="button" class="text-xs text-uc-blue-dark underline" data-fold="${esc(k)}">${open.has(k) ? 'Fewer' : `${vals.length - 8} more`}</button>` : '';
-      return `<div class="mb-5" role="group" aria-label="${esc(title)}"><h2 class="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">${esc(title)}</h2><div class="flex flex-wrap gap-1 items-center">${chips}${fold}</div></div>`;
+      return `<div class="mb-5" role="group" aria-label="${esc(title)}"><h2 class="text-sm font-semibold text-gray-600 mb-2">${esc(title)}</h2><div class="flex flex-wrap gap-1 items-center">${chips}${fold}</div></div>`;
     }).join('') + (n ? '<button type="button" class="text-sm text-uc-blue-dark underline" data-clear>Clear all filters</button>' : '');
   }
 
@@ -152,7 +152,7 @@ const labels = {
     return `<a class="underline" href="${esc(url)}" target="_blank" rel="noopener" title="${esc(url)}">${esc(what)} ↗</a>`;
   };
   const PIN = 'border-l-4 border-uc-blue bg-[#eaf6fc] pl-3 pr-2 rounded-r-lg';
-  const badge = (outside: boolean) => `<span class="inline-block mb-1 text-[.7rem] font-semibold uppercase tracking-wide text-uc-blue-dark">Exact title${outside ? ' · outside current filters' : ''}</span>`;
+  const badge = (outside: boolean) => `<span class="inline-block mb-1 text-xs font-semibold text-uc-blue-dark">Exact title${outside ? ' · outside current filters' : ''}</span>`;
   function card(d: any, pin?: { outside: boolean }) {
     const m = d.meta ?? {}, f = d.filters ?? {};
     let prov: any = {}; try { prov = JSON.parse(m.prov ?? '{}'); } catch {}
@@ -168,7 +168,7 @@ const labels = {
       <div class="shrink-0">${glyph(m, kind)}</div>
       <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">
         ${pin ? badge(pin.outside) : ''}
-        <div class="text-xs uppercase tracking-wide text-gray-500">${appMark(m.system)}${eyebrow}</div>
+        <div class="text-sm text-gray-600 first-letter:uppercase">${appMark(m.system)}${eyebrow}</div>
         <a href="${esc(m.drive ?? clean(d.url))}"${m.drive ? ' target="_blank" rel="noopener"' : ''} class="block text-lg font-semibold text-uc-blue-dark hover:underline leading-snug" data-hit>${esc(m.title || d.url)}</a>
         <div class="text-xs text-gray-500 truncate">${esc(m.path ?? '')}</div>
         <p class="text-sm text-gray-700 mt-1">${d.excerpt}</p>
@@ -183,7 +183,7 @@ const labels = {
   const nodeCard = (n: any, outside: boolean) => `<li class="py-4 flex gap-4 ${PIN}">
       <div class="shrink-0">${glyph({ thumb: n.img, system: n.system }, n.type)}</div>
       <div class="min-w-0 flex-1 [overflow-wrap:anywhere]">${badge(outside)}
-        <div class="text-xs uppercase tracking-wide text-gray-500">${appMark(n.system)}${esc(n.type)}</div>
+        <div class="text-sm text-gray-600 first-letter:uppercase">${appMark(n.system)}${esc(n.type)}</div>
         <a href="${esc(n.href ?? n.id)}"${/^https?:/.test(n.href ?? '') ? ' target="_blank" rel="noopener"' : ''} class="block text-lg font-semibold text-uc-blue-dark hover:underline leading-snug" data-hit>${esc(n.label)}</a>
         <div class="text-xs text-gray-500 truncate">${esc(n.desc ?? '')}</div>
       </div></li>`;
@@ -315,7 +315,7 @@ const labels = {
       await pf.options({ excerptLength: 40, highlightParam: 'highlight' });
       known = await pf.filters();
     } catch {
-      statusEl.textContent = 'Search works on the built site only (npm run build, then npm run preview).';
+      statusEl.textContent = 'Search did not load. Reload the page to try again.';
       return;
     }
     absorbOperators(); writeUrl(false);

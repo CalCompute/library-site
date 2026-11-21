@@ -7,7 +7,7 @@
   "name": "calcompute-public-library",
   "compatibility_date": "2026-10-01",
   "main": "src/worker.js",
-  "assets": { "directory": "./dist", "html_handling": "auto-trailing-slash", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
+  "assets": { "directory": "./dist", "html_handling": "auto-trailing-slash", "not_found_handling": "404-page", "binding": "ASSETS", "run_worker_first": ["/api/*"] },
   // database_id: from `npx wrangler d1 create calcompute-community` (README.md, Forms). A build with the placeholder fails.
   "d1_databases": [{ "binding": "DB", "database_name": "calcompute-community", "database_id": "aaf33aa2-e294-4158-80e0-74848bcd0822" }]
 }

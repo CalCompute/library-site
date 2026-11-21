@@ -69,14 +69,15 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
     <meta name="theme-color" content="#72cdf4" />
   </head>
   <body>
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-uc-blue-dark focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
     <!-- The same frame as CaliforniaCompute.org's header: 1280px, 16px gutter, the wordmark on the left gutter,
          then links, search and the shared "Take the survey" button (.nav-cta), with a menu below 1025px. -->
-    <header class="fixed top-0 inset-x-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
+    <header class="fixed top-0 inset-x-0 z-20 bg-white border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 h-16 flex items-center gap-3 sm:gap-4">
         <!-- The wordmark goes to CaliforniaCompute.org; "research" is this site's home link. -->
         <div class="shrink-0 flex items-center gap-2">
           <a href="https://californiacompute.org/"><img src="/images/brand/calcompute-wordmark-sticker.svg" alt="CalCompute" height="36" width="161" class="h-9 w-auto" /></a>
-          <a href="/" class="text-xs uppercase tracking-wide text-gray-400 hover:text-gray-600" aria-label="CalCompute Research Library, home">research</a>
+          <a href="/" class="text-sm text-gray-600 hover:text-gray-900" aria-label="CalCompute Research Library, home">research</a>
         </div>
         <nav class="ml-auto max-[1024px]:hidden">
           <ul class="flex gap-1 text-sm whitespace-nowrap">
@@ -109,13 +110,13 @@ const active = (href) => (href === '/' ? here === '/' : here.startsWith(href.rep
       <form method="get" action="/search/" role="search" class="p-3 border-b border-gray-200">
         <input id="qs" name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Search the library"
           role="combobox" aria-expanded="false" aria-controls="qs-list" aria-autocomplete="list" aria-label="Search the library"
-          class="w-full text-lg px-2 py-1.5 focus:outline-none" />
+          class="w-full text-lg px-2 py-1.5" />
       </form>
       <ul id="qs-list" role="listbox" aria-label="Pages" class="max-h-[60vh] overflow-y-auto"></ul>
-      <p class="px-4 py-2 text-xs text-gray-500 border-t border-gray-200">↑ ↓ choose a page · Enter searches everything, with exact title matches first · <code>kind:source</code> and other filters work there · Esc closes</p>
+      <p class="px-4 py-2 text-xs text-gray-500 border-t border-gray-200">↑ ↓ choose a page. Enter searches everything, with exact title matches first; <code>kind:source</code> and other filters work there. Esc closes.</p>
     </dialog>
 
-    <main class={bare ? 'pt-16' : 'pt-22 pb-16 px-4 max-w-7xl mx-auto'}>
+    <main id="main" class={bare ? 'pt-16' : 'pt-22 pb-16 px-4 max-w-7xl mx-auto'}>
       <slot />
     </main>
 

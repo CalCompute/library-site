@@ -17,7 +17,7 @@ const letters = [...new Set(all.flatMap((b) => b.elements ?? []))].sort();
       <h3 class="text-base font-semibold">{href
         ? <a class="inline-flex items-center gap-1.5 hover:underline" href={href} target="_blank" rel="noopener"><img src="/images/apps/google-drive.svg" alt="" class="h-4 w-auto" />{heading} ↗</a>
         : heading ?? <a class="hover:underline" href={shelf.hub.route}>{shelf.hub.title}</a>}<span data-shelf-count class="ml-1.5 text-sm font-normal text-gray-500">{all.length}</span></h3>
-      {suggest && <a class="btn !py-1 !px-3 !text-sm" href="#suggest" data-kind="reading">Suggest research</a>}
+      {suggest && <a class="btn py-1 px-3 text-sm" href="#suggest" data-kind="reading">Suggest research</a>}
     </div>
     {filter && letters.length > 0 && (
       <div class="flex flex-wrap gap-1.5 mb-2">
@@ -27,20 +27,20 @@ const letters = [...new Set(all.flatMap((b) => b.elements ?? []))].sort();
     )}
     {covers.length > 0 && <div class="shelf pt-2">
       {covers.map((b) => (
-        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} data-elements={(b.elements ?? []).join(' ')} class="group w-[8.5rem] flex flex-col transition-transform hover:-translate-y-1">
-          <span class="h-44 flex items-end"><img src={b.cover} alt="" loading="lazy" width="320" height="414" class="max-h-full max-w-full w-auto h-auto rounded-sm border border-gray-200 shadow-md" /></span>
+        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} data-elements={(b.elements ?? []).join(' ')} class="group w-[8.5rem] flex flex-col">
+          <span class="h-44 flex items-end"><img src={b.cover} alt="" loading="lazy" width="320" height="414" class="max-h-full max-w-full w-auto h-auto rounded-sm border border-gray-200" /></span>
           <span class="mt-1.5 text-xs leading-snug text-gray-700 line-clamp-2 group-hover:underline">{b.title}</span>
-          {b.elements?.length > 0 && <span class="mt-1 mb-2 flex flex-wrap gap-1">{b.elements.map((L) => <span class="chip !px-1.5 !py-0 !text-[0.65rem]">{L}</span>)}</span>}
+          {b.elements?.length > 0 && <span class="mt-1 mb-2 flex flex-wrap gap-1">{b.elements.map((L) => <span class="chip px-1.5 py-0 text-[0.65rem]">{L}</span>)}</span>}
         </a>
       ))}
     </div>}
     {cards.length > 0 && <div class="shelf shelf-rows pt-2 pb-2">
       {cards.map((b) => (
-        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} data-elements={(b.elements ?? []).join(' ')} class="card group p-3 flex flex-col gap-1 transition-transform hover:-translate-y-1">
+        <a href={b.route} title={`${b.title}\nAdded ${b.added}`} data-elements={(b.elements ?? []).join(' ')} class="card group p-3 flex flex-col gap-1 transition-colors hover:border-gray-400">
           <span class="text-sm font-medium leading-snug line-clamp-2 group-hover:underline">{b.title}</span>
           {b.host && <span class="text-xs text-gray-500 truncate flex items-center gap-1.5">{b.icon && <img src={b.icon} alt="" width="16" height="16" loading="lazy" class="h-4 w-4 shrink-0 rounded-sm" />}<span class="truncate">{b.host}</span></span>}
           <span class="text-xs leading-snug text-gray-600 line-clamp-3">{b.summary}</span>
-          {b.elements?.length > 0 && <span class="mt-auto pt-1 flex flex-wrap gap-1">{b.elements.map((L) => <span class="chip !px-1.5 !py-0 !text-[0.65rem]">{L}</span>)}</span>}
+          {b.elements?.length > 0 && <span class="mt-auto pt-1 flex flex-wrap gap-1">{b.elements.map((L) => <span class="chip px-1.5 py-0 text-[0.65rem]">{L}</span>)}</span>}
         </a>
       ))}
     </div>}

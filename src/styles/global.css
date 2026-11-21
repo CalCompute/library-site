@@ -20,6 +20,7 @@
   --color-uc-border: #dbd5cd;
 }
 
+@layer base { :focus-visible { outline: 3px solid #1295d8; outline-offset: 2px; } }
 html { scroll-padding-top: 5rem; }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 body {
@@ -33,6 +34,9 @@ body {
 
 /* Article prose */
 .article-prose { color: #1f2937; line-height: 1.75; font-size: 1rem; overflow-wrap: anywhere; }
+/* Lines of about 70 characters; tables keep the full column. Headings set tight. */
+.article-prose :is(p, ul, ol, blockquote, h1, h2, h3, h4) { max-width: 70ch; }
+.article-prose :is(h1, h2, h3, h4) { line-height: 1.25; }
 .article-prose h1 { font-size: 1.9rem; font-weight: 700; color: #111827; margin: 0 0 1rem; }
 .article-prose h2 { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 2.25rem 0 0.9rem; }
 .article-prose h3 { font-size: 1.2rem; font-weight: 600; color: #111827; margin: 1.75rem 0 0.6rem; }
@@ -43,7 +47,7 @@ body {
 .article-prose ol { list-style: decimal; }
 .article-prose li { margin-bottom: 0.3rem; }
 .article-prose a, .cell a, .md a { color: #005581; text-decoration: underline; text-underline-offset: 2px; }
-.article-prose a:hover, .cell a:hover, .md a:hover { color: #1295d8; }
+.article-prose a:hover, .cell a:hover, .md a:hover { color: #002033; }
 /* A button inside prose keeps its own colours (About's Suggest reading). */
 .article-prose a.btn { text-decoration: none; color: #005581; }
 .article-prose a.btn-primary, .article-prose a.btn-primary:hover { color: white; }
@@ -80,10 +84,9 @@ body {
 .md ul { list-style: disc; padding-left: 1.25rem; }
 .md li { margin-bottom: 0.25rem; }
 
-.chip { border: 1px solid #e5e7eb; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; background: white; color: #4b5563; }
-.chip[aria-pressed="true"] { background: #eaf6fc; color: #002033; border-color: #72cdf4; }
-.chip[aria-pressed="false"] { opacity: 0.55; }
-.card { background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; }
+@layer components { .chip { border: 1px solid #e5e7eb; border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.75rem; background: white; color: #4b5563; } }
+@layer components { .chip[aria-pressed="true"] { background: #eaf6fc; color: #002033; border-color: #72cdf4; } }
+@layer components { .card { background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; } }
 /* A shelf (Shelf.astro) runs to both edges of the screen, so a cover is cut only there. .shelf-wrap spans the page's
    centred text column, so --gutter (the space beside that column, from the wrap's own width, 100cqw) lines the first
    cover up with the text, and a snapped cover rests there. No scrollbar: swipe, shift-scroll or tab through the
@@ -112,10 +115,10 @@ tr:target { background: #fff4d6; }
 tr[id] { scroll-margin-top: 5rem; }
 
 /* Buttons */
-.btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; border: 1px solid #005581; color: #005581; background: white; }
-.btn:hover { background: #bde3f6; }
-.btn-primary { background: #005581; color: white; }
-.btn-primary:hover { background: #1295d8; border-color: #1295d8; }
+@layer components { .btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 999px; padding: 0.5rem 1rem; font-size: 0.9rem; font-weight: 500; border: 1px solid #005581; color: #005581; background: white; } }
+@layer components { .btn:hover { background: #bde3f6; } }
+@layer components { .btn-primary { background: #005581; color: white; } }
+@layer components { .btn-primary:hover { background: #002033; border-color: #002033; } }
 /* The header's "Take the survey": the same button as CaliforniaCompute.org's header (its Button.astro primary, sm,
    squared by .navbar__cta), value for value, so the two sites share it. Only the typeface is this site's.
    In the components layer so Tailwind's `hidden` can still hide it. */
